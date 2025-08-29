@@ -12,7 +12,7 @@ This companion site serves as a web interface to complement the Stroke Memory mo
 
 Clone this repository to your local machine using Git:
 
-`git clone https://github.com/YourUsername/CompanionSite-for-StrokeMemoryApp`
+`git clone https://github.com/renners7777/stroke-memory-app-companion-site.git`
 
 ## 🛠️ Development Guide
 
