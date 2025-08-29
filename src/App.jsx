@@ -17,7 +17,7 @@ function App() {
     if (detailsRef.current) {
       setDetailHeight(detailsRef.current.clientHeight);
     }
-  }, [logs, showLogs]);
+  }, []);
 
   useEffect(() => {
     updateHeight();
@@ -26,14 +26,15 @@ function App() {
   }, [updateHeight]);
 
   useEffect(() => {
-    if (!detailsRef.current) return;
-    detailsRef.current.addEventListener("toggle", updateHeight);
+    const detailsNode = detailsRef.current;
+    if (!detailsNode) return;
+    detailsNode.addEventListener("toggle", updateHeight);
 
     return () => {
-      if (!detailsRef.current) return;
-      detailsRef.current.removeEventListener("toggle", updateHeight);
+      if (!detailsNode) return;
+      detailsNode.removeEventListener("toggle", updateHeight);
     };
-  }, []);
+  }, [updateHeight]);
 
   async function sendPing() {
     if (status === "loading") return;
@@ -264,7 +265,7 @@ function App() {
                 <tbody>
                   {logs.length > 0 ? (
                     logs.map((log) => (
-                      <tr>
+                      <tr key={log.date.getTime()}>
                         <td className="py-2 pl-4 font-[Fira_Code]">
                           {log.date.toLocaleString("en-US", {
                             month: "short",

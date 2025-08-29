@@ -1,26 +1,30 @@
-# React starter kit with Appwrite
+# Stroke Memory App Companion Site
 
-Kickstart your React development with this ready-to-use starter project integrated with [Appwrite](https://www.appwrite.io)
+This project is a companion website for the Stroke Memory App, built using React and [Appwrite](https://www.appwrite.io). The foundation of this project was created using the Appwrite React starter kit.
 
-## 🚀Getting started
+## 🎯 Purpose
 
-###
-Clone the Project
+This companion site serves as a web interface to complement the Stroke Memory mobile application, providing additional features and accessibility through web browsers.
+
+## 🚀 Getting Started
+
+### Clone the Project
+
 Clone this repository to your local machine using Git:
 
-`git clone https://github.com/appwrite/starter-for-react`
+`git clone https://github.com/YourUsername/CompanionSite-for-StrokeMemoryApp`
 
-## 🛠️ Development guid
-1. **Configure Appwrite**<br/>
+## 🛠️ Development Guide
+
+1. **Configure Appwrite**  
    Navigate to `.env` and update the values to match your Appwrite project credentials.
-2. **Customize as needed**<br/>
-   Modify the starter kit to suit your app's requirements. Adjust UI, features, or backend
-   integrations as per your needs.
-3. **Install dependencies**<br/>
+2. **Install dependencies**  
    Run `npm install` to install all dependencies.
-4. **Run the app**<br/>
+3. **Run the app**  
    Start the project by running `npm run dev`.
 
-## 💡 Additional notes
-- This starter project is designed to streamline your React development with Appwrite.
-- Refer to the [Appwrite documentation](https://appwrite.io/docs) for detailed integration guidance.
+## 💡 Additional Notes
+
+- This project is built upon the [Appwrite React starter kit](https://github.com/appwrite/starter-for-react)
+- For Appwrite-specific features, refer to the [Appwrite documentation](https://appwrite.io/docs)
+- The companion site interfaces with the same Appwrite backend as the Stroke Memory mobile app

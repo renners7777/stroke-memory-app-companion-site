@@ -14,6 +14,7 @@ summary::-webkit-details-marker {
   background-image: linear-gradient(#e6e6e690 1px, transparent 1px),
   linear-gradient(90deg, #e6e6e690 1px, transparent 1px);
   background-size: 3.7em 3.7em;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 40%, black 0%, transparent 55%);
   mask-image: radial-gradient(ellipse at 50% 40%, black 0%, transparent 55%);
   z-index: -1;
   background-position-x: center;
