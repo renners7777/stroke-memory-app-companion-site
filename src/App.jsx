@@ -114,10 +114,10 @@ const App = () => {
   );
 
   return (
-    <div className="app-container">
+    <div className="min-h-screen bg-gray-100 p-4">
       {!loggedInUser ? (
-        <div className="auth-form">
-          <h1>Stroke Memory App - Caregiver Portal</h1>
+        <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
+          <h1 className="text-2xl font-bold mb-6">Stroke Memory App - Caregiver Portal</h1>
           <form>
             <input 
               type="email" 
@@ -154,24 +154,7 @@ const App = () => {
           </form>
         </div>
       ) : (
-        <div>
-          <nav>
-            <span>Welcome, {loggedInUser.name}</span>
-            <button
-              type="button"
-              onClick={async () => {
-                await account.deleteSession('current');
-                setLoggedInUser(null);
-                setUserProgress(null);
-                setReminders([]);
-                setJournalEntries([]);
-              }}
-            >
-              Logout
-            </button>
-          </nav>
-          <CaregiverDashboard />
-        </div>
+        <CaregiverDashboard />
       )}
     </div>
   );
