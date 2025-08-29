@@ -28,3 +28,4 @@ Clone this repository to your local machine using Git:
 - This project is built upon the [Appwrite React starter kit](https://github.com/appwrite/starter-for-react)
 - For Appwrite-specific features, refer to the [Appwrite documentation](https://appwrite.io/docs)
 - The companion site interfaces with the same Appwrite backend as the Stroke Memory mobile app
+# stroke-memory-app-companion-site
