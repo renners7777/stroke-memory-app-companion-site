@@ -26,11 +26,26 @@ const Login = ({ setLoggedInUser }) => {
   async function register(email, password, name) {
     try {
       setError('');
-      await account.create(ID.unique(), email, password, name);
+      if (!email || !password || !name) {
+        setError('All fields are required');
+        return;
+      }
+      
+      console.log('Attempting registration with:', { email, name }); // Debug log
+      const user = await account.create(ID.unique(), email, password, name);
+      console.log('Registration successful:', user); // Debug log
+      
+      // If registration successful, attempt login
       await login(email, password);
     } catch (error) {
-      console.error('Registration failed:', error);
-      setError('Registration failed. Please try again.');
+      console.error('Registration error:', error);
+      if (error.code === 409) {
+        setError('User already exists with this email');
+      } else if (error.code === 400) {
+        setError('Invalid email or password format');
+      } else {
+        setError(`Registration failed: ${error.message}`);
+      }
     }
   }
 
