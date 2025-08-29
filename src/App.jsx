@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { account, databases, ID, Query } from './lib/appwrite';
 import { useCallback } from 'react';
+import './App.css';
 
 const App = () => {
   const [loggedInUser, setLoggedInUser] = useState(null);
@@ -41,12 +42,14 @@ const App = () => {
 
   const fetchUserData = useCallback(async (userId) => {
     try {
-      // Fetch progress data
+      console.log('Fetching data for user:', userId);
+      
       const progress = await databases.listDocuments(
         '68b213e7001400dc7f21',
-        'progress_table',  // Updated from progress_collection
+        'progress_table',
         [Query.equal('userId', userId)]
       );
+      console.log('Progress data:', progress.documents);
       setUserProgress(progress.documents);
 
       // Fetch reminders
@@ -77,7 +80,9 @@ const App = () => {
         <h3>Progress Summary</h3>
         {userProgress && userProgress.map(progress => (
           <div key={progress.$id}>
-            {/* Display progress metrics */}
+            <p>Date: {new Date(progress.date).toLocaleDateString()}</p>
+            <p>Memory Score: {progress.memoryScore}</p>
+            <p>Cognition Score: {progress.cognitionScore}</p>
           </div>
         ))}
       </section>
@@ -86,7 +91,9 @@ const App = () => {
         <h3>Upcoming Reminders</h3>
         {reminders.map(reminder => (
           <div key={reminder.$id}>
-            {/* Display reminder details */}
+            <p>Title: {reminder.title}</p>
+            <p>Due: {new Date(reminder.dateTime).toLocaleString()}</p>
+            <p>Status: {reminder.status}</p>
           </div>
         ))}
       </section>
@@ -95,7 +102,9 @@ const App = () => {
         <h3>Recent Journal Entries</h3>
         {journalEntries.map(entry => (
           <div key={entry.$id}>
-            {/* Display journal entry */}
+            <p>Title: {entry.title}</p>
+            <p>Date: {new Date(entry.dateCreated).toLocaleDateString()}</p>
+            <p>Content: {entry.content}</p>
           </div>
         ))}
       </section>
