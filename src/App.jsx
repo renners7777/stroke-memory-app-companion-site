@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { account, databases, ID, Query } from './lib/appwrite';
-import { useCallback } from 'react';
 import './App.css';
 
 const App = () => {
@@ -12,15 +11,50 @@ const App = () => {
   const [reminders, setReminders] = useState([]);
   const [journalEntries, setJournalEntries] = useState([]);
 
+  // Move fetchUserData definition before checkAuth
+  const fetchUserData = useCallback(async (userId) => {
+    try {
+      console.log('Fetching data for user:', userId);
+      
+      const progress = await databases.listDocuments(
+        '68b213e7001400dc7f21',
+        'progress_table',
+        [Query.equal('userId', userId)]
+      );
+      console.log('Progress data:', progress.documents);
+      setUserProgress(progress.documents);
+
+      const userReminders = await databases.listDocuments(
+        '68b213e7001400dc7f21',
+        'reminders_table',
+        [Query.equal('userId', userId)]
+      );
+      setReminders(userReminders.documents);
+
+      const entries = await databases.listDocuments(
+        '68b213e7001400dc7f21',
+        'journal_table',
+        [Query.equal('userId', userId)]
+      );
+      setJournalEntries(entries.documents);
+    } catch (error) {
+      console.error('Data fetch failed:', error);
+    }
+  }, []);
+
+  // Then define checkAuth
   const checkAuth = useCallback(async () => {
     try {
+      console.log('Checking authentication...');
       const user = await account.get();
+      console.log('User found:', user);
       setLoggedInUser(user);
       if (user) {
         await fetchUserData(user.$id);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
+      setLoggedInUser(null);
     }
   }, [fetchUserData]);
 
@@ -39,38 +73,6 @@ const App = () => {
       console.error('Login failed:', error);
     }
   }
-
-  const fetchUserData = useCallback(async (userId) => {
-    try {
-      console.log('Fetching data for user:', userId);
-      
-      const progress = await databases.listDocuments(
-        '68b213e7001400dc7f21',
-        'progress_table',
-        [Query.equal('userId', userId)]
-      );
-      console.log('Progress data:', progress.documents);
-      setUserProgress(progress.documents);
-
-      // Fetch reminders
-      const userReminders = await databases.listDocuments(
-        '68b213e7001400dc7f21',
-        'reminders_table',  // Updated from reminders_collection
-        [Query.equal('userId', userId)]
-      );
-      setReminders(userReminders.documents);
-
-      // Fetch journal entries
-      const entries = await databases.listDocuments(
-        '68b213e7001400dc7f21',
-        'journal_table',  // Updated from journal_collection
-        [Query.equal('userId', userId)]
-      );
-      setJournalEntries(entries.documents);
-    } catch (error) {
-      console.error('Data fetch failed:', error);
-    }
-  }, []);
 
   const CaregiverDashboard = () => (
     <div className="dashboard">
