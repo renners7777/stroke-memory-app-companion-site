@@ -1,12 +1,33 @@
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
+import { account } from '../lib/appwrite';
 
-const CaregiverDashboard = ({ user, userProgress, reminders, journalEntries }) => {
+const CaregiverDashboard = ({ user, setLoggedInUser, userProgress, reminders, journalEntries }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await account.deleteSession('current');
+      setLoggedInUser(null);
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Failed to logout:', error);
+      // You could add an alert or a toast notification here for the user
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <header className="bg-white shadow-sm rounded-lg p-6 mb-6">
+        <header className="bg-white shadow-sm rounded-lg p-6 mb-6 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800">Welcome, {user.name}</h1>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white rounded-md px-4 py-2 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition-colors"
+          >
+            Logout
+          </button>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -63,6 +84,7 @@ const CaregiverDashboard = ({ user, userProgress, reminders, journalEntries }) =
 
 CaregiverDashboard.propTypes = {
   user: PropTypes.object.isRequired,
+  setLoggedInUser: PropTypes.func.isRequired,
   userProgress: PropTypes.array,
   reminders: PropTypes.array.isRequired,
   journalEntries: PropTypes.array.isRequired
