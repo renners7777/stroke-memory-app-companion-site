@@ -16,7 +16,6 @@ const App = () => {
   const fetchUserData = useCallback(async (userId) => {
     try {
       console.log('Fetching data for user:', userId);
-      
       const progress = await databases.listDocuments(
         '68b213e7001400dc7f21',
         'progress_table',
@@ -42,7 +41,16 @@ const App = () => {
     }
   }, []);
 
-  // On initial app load, check if there's an active session.
+  // Centralized logout function
+  const logout = async () => {
+    try {
+      await account.deleteSession('current');
+      setLoggedInUser(null);
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -56,7 +64,6 @@ const App = () => {
     checkSession();
   }, []);
 
-  // When login state changes, fetch or clear data.
   useEffect(() => {
     if (loggedInUser) {
       console.log('User logged in, fetching data...');
@@ -75,13 +82,7 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route 
           path="/login" 
-          element={
-            !loggedInUser ? (
-              <Login setLoggedInUser={setLoggedInUser} />
-            ) : (
-              <Navigate to="/dashboard" replace />
-            )
-          } 
+          element={!loggedInUser ? <Login setLoggedInUser={setLoggedInUser} /> : <Navigate to="/dashboard" replace />}
         />
         <Route 
           path="/dashboard" 
@@ -89,13 +90,13 @@ const App = () => {
             loggedInUser ? (
               <CaregiverDashboard 
                 user={loggedInUser}
-                setLoggedInUser={setLoggedInUser}
+                logout={logout} // Pass the centralized logout function
                 userProgress={userProgress}
                 reminders={reminders}
                 journalEntries={journalEntries}
               />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace /> // On logout, redirect to HOME page
             )
           } 
         />

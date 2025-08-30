@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
+// No longer need useNavigate, it will be handled in App.jsx
 import { account } from '../lib/appwrite';
 
 const StatCard = ({ title, value, icon }) => (
@@ -20,17 +20,11 @@ StatCard.propTypes = {
   icon: PropTypes.node.isRequired,
 };
 
-const CaregiverDashboard = ({ user, setLoggedInUser, userProgress, reminders, journalEntries }) => {
-  const navigate = useNavigate();
+// The component now receives a `logout` function instead of `setLoggedInUser`
+const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntries }) => {
 
   const handleLogout = async () => {
-    try {
-      await account.deleteSession('current');
-      setLoggedInUser(null);
-      navigate('/'); // Redirect to home page
-    } catch (error) {
-      console.error('Failed to logout:', error);
-    }
+    await logout();
   };
 
   const latestProgress = userProgress?.[0];
@@ -119,7 +113,7 @@ const CaregiverDashboard = ({ user, setLoggedInUser, userProgress, reminders, jo
 
 CaregiverDashboard.propTypes = {
   user: PropTypes.object.isRequired,
-  setLoggedInUser: PropTypes.func.isRequired,
+  logout: PropTypes.func.isRequired, // Changed from setLoggedInUser
   userProgress: PropTypes.array,
   reminders: PropTypes.array.isRequired,
   journalEntries: PropTypes.array.isRequired
