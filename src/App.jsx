@@ -13,6 +13,25 @@ const App = () => {
   const [reminders, setReminders] = useState([]);
   const [journalEntries, setJournalEntries] = useState([]);
 
+  // Temporary debug code to get the ground truth of the collection schema
+  useEffect(() => {
+    const debugCollection = async () => {
+      try {
+        console.log("--- DEBUG: Fetching collection details for 'progress_table' ---");
+        const collection = await databases.getCollection(
+          '68b213e7001400dc7f21',
+          'progress_table'
+        );
+        console.log("--- DEBUG: Collection details received ---", collection);
+        console.log("--- DEBUG: Attributes ---", collection.attributes);
+        console.log("--- DEBUG: Indexes ---", collection.indexes);
+      } catch (e) {
+        console.error("--- DEBUG: Failed to fetch collection details ---", e);
+      }
+    };
+    debugCollection();
+  }, []);
+
   const fetchUserData = useCallback(async (userId) => {
     try {
       console.log('Fetching data for user:', userId);
@@ -59,7 +78,6 @@ const App = () => {
   }, [fetchUserData]);
 
   useEffect(() => {
-    // Check if user is already logged in
     checkAuth();
   }, [checkAuth]);
 
