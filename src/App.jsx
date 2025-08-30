@@ -3,7 +3,7 @@ import Home from './components/Home';
 import Login from './components/Login';
 import CaregiverDashboard from './components/CaregiverDashboard';
 import { useState, useEffect, useCallback } from 'react';
-import { account, databases, Query } from './lib/appwrite';
+import { account, tables, Query } from './lib/appwrite';
 import PropTypes from 'prop-types';
 import './App.css';
 
@@ -17,7 +17,7 @@ const App = () => {
     try {
       console.log('Fetching data for user:', userId);
       
-      const progress = await databases.listDocuments(
+      const progress = await tables.listDocuments(
         '68b213e7001400dc7f21',
         'progress_table',
         [Query.equal('userId', userId)]
@@ -25,14 +25,14 @@ const App = () => {
       console.log('Progress data:', progress.documents);
       setUserProgress(progress.documents);
 
-      const userReminders = await databases.listDocuments(
+      const userReminders = await tables.listDocuments(
         '68b213e7001400dc7f21',
         'reminders_table',
         [Query.equal('userId', userId)]
       );
       setReminders(userReminders.documents);
 
-      const entries = await databases.listDocuments(
+      const entries = await tables.listDocuments(
         '68b213e7001400dc7f21',
         'journal_table',
         [Query.equal('userId', userId)]
