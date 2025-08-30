@@ -21,7 +21,7 @@ const Login = ({ setLoggedInUser }) => {
   async function login(email, password) {
     try {
       setError('');
-      await account.createEmailSession(email, password);
+      await account.createEmailPasswordSession(email, password);
       const user = await account.get();
       setLoggedInUser(user);
       navigate('/dashboard');
