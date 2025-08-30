@@ -22,7 +22,6 @@ const App = () => {
         'progress_table',
         [Query.equal('userID', userId)]
       );
-      console.log('Progress data:', progress.documents);
       setUserProgress(progress.documents);
 
       const userReminders = await databases.listDocuments(
@@ -43,24 +42,32 @@ const App = () => {
     }
   }, []);
 
-  const checkAuth = useCallback(async () => {
-    try {
-      console.log('Checking authentication...');
-      const user = await account.get();
-      console.log('User found:', user);
-      setLoggedInUser(user);
-      if (user) {
-        await fetchUserData(user.$id);
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setLoggedInUser(null);
-    }
-  }, [fetchUserData]);
-
+  // On initial app load, check if there's an active session.
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    const checkSession = async () => {
+      try {
+        console.log('Checking initial session...');
+        const user = await account.get();
+        setLoggedInUser(user);
+      } catch (error) {
+        setLoggedInUser(null);
+      }
+    };
+    checkSession();
+  }, []);
+
+  // When login state changes, fetch or clear data.
+  useEffect(() => {
+    if (loggedInUser) {
+      console.log('User logged in, fetching data...');
+      fetchUserData(loggedInUser.$id);
+    } else {
+      console.log('User logged out, clearing data...');
+      setUserProgress(null);
+      setReminders([]);
+      setJournalEntries([]);
+    }
+  }, [loggedInUser, fetchUserData]);
 
   return (
     <Router>
