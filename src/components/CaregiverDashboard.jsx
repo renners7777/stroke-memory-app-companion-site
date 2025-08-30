@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 import { account } from '../lib/appwrite';
 
 const StatCard = ({ title, value, icon }) => (
@@ -20,17 +21,18 @@ StatCard.propTypes = {
 };
 
 const CaregiverDashboard = ({ user, setLoggedInUser, userProgress, reminders, journalEntries }) => {
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
       await account.deleteSession('current');
       setLoggedInUser(null);
+      navigate('/'); // Redirect to home page
     } catch (error) {
       console.error('Failed to logout:', error);
     }
   };
 
-  // Example data for stats - you can replace this with real derived data
   const latestProgress = userProgress?.[0];
   const upcomingRemindersCount = reminders.length;
 
