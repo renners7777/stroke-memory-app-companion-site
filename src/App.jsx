@@ -13,25 +13,6 @@ const App = () => {
   const [reminders, setReminders] = useState([]);
   const [journalEntries, setJournalEntries] = useState([]);
 
-  // Temporary debug code to get the ground truth of the collection schema
-  useEffect(() => {
-    const debugCollection = async () => {
-      try {
-        console.log("--- DEBUG: Fetching collection details for 'progress_table' ---");
-        const collection = await databases.getCollection(
-          '68b213e7001400dc7f21',
-          'progress_table'
-        );
-        console.log("--- DEBUG: Collection details received ---", collection);
-        console.log("--- DEBUG: Attributes ---", collection.attributes);
-        console.log("--- DEBUG: Indexes ---", collection.indexes);
-      } catch (e) {
-        console.error("--- DEBUG: Failed to fetch collection details ---", e);
-      }
-    };
-    debugCollection();
-  }, []);
-
   const fetchUserData = useCallback(async (userId) => {
     try {
       console.log('Fetching data for user:', userId);
@@ -39,7 +20,7 @@ const App = () => {
       const progress = await databases.listDocuments(
         '68b213e7001400dc7f21',
         'progress_table',
-        [Query.equal('userId', userId)]
+        [Query.equal('userID', userId)]
       );
       console.log('Progress data:', progress.documents);
       setUserProgress(progress.documents);
@@ -47,14 +28,14 @@ const App = () => {
       const userReminders = await databases.listDocuments(
         '68b213e7001400dc7f21',
         'reminders_table',
-        [Query.equal('userId', userId)]
+        [Query.equal('userID', userId)]
       );
       setReminders(userReminders.documents);
 
       const entries = await databases.listDocuments(
         '68b213e7001400dc7f21',
         'journal_table',
-        [Query.equal('userId', userId)]
+        [Query.equal('userID', userId)]
       );
       setJournalEntries(entries.documents);
     } catch (error) {
