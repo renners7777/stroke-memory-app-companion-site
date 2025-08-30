@@ -65,94 +65,101 @@ const Login = ({ setLoggedInUser }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-white flex items-center justify-center">
-      <div className="relative py-3 w-full max-w-xl mx-auto px-4">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 shadow-lg transform -skew-y-6 sm:skew-y-0 sm:-rotate-6 sm:rounded-3xl"></div>
-        <div className="relative px-4 py-10 bg-white shadow-lg sm:rounded-3xl sm:p-20">
-          <div className="max-w-md mx-auto">
-            <div className="divide-y divide-gray-200">
-              <div className="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
-                <h1 className="text-3xl font-bold text-center mb-4 text-blue-600">Stroke Memory App</h1>
-                <h2 className="text-xl text-center mb-8 text-gray-600">
-                  {isRegistering ? 'Create Your Caregiver Account' : 'Caregiver Portal Login'}
-                </h2>
-                {error && (
-                  <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm mb-4">
-                    {error}
-                  </div>
-                )}
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="relative">
-                    <input 
-                      id="email"
-                      name="email"
-                      type="email" 
-                      placeholder="Email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="peer placeholder-transparent h-10 w-full border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-blue-600"
-                      required
-                    />
-                    <label htmlFor="email" className="absolute left-0 -top-3.5 text-gray-600 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm">
-                      Email
-                    </label>
-                  </div>
-                  <div className="relative">
-                    <input 
-                      id="password"
-                      name="password"
-                      type="password"
-                      placeholder="Password" 
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className="peer placeholder-transparent h-10 w-full border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-blue-600"
-                      required
-                    />
-                    <label htmlFor="password" className="absolute left-0 -top-3.5 text-gray-600 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm">
-                      Password
-                    </label>
-                  </div>
-                  {isRegistering && (
-                    <div className="relative">
-                      <input 
-                        id="name"
-                        name="name"
-                        type="text"
-                        placeholder="Name" 
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        className="peer placeholder-transparent h-10 w-full border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-blue-600"
-                        required
-                      />
-                      <label htmlFor="name" className="absolute left-0 -top-3.5 text-gray-600 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm">
-                        Name
-                      </label>
-                    </div>
-                  )}
-                  <div className="relative">
-                    <button
-                      type="submit"
-                      className="bg-blue-600 text-white rounded-md px-4 py-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 w-full transition-colors"
-                    >
-                      {isRegistering ? 'Register' : 'Login'}
-                    </button>
-                  </div>
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsRegistering(!isRegistering);
-                        setError('');
-                        setFormData({ email: '', password: '', name: '' });
-                      }}
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      {isRegistering ? 'Already have an account? Login' : "Don't have an account? Register"}
-                    </button>
-                  </div>
-                </form>
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-extrabold text-slate-900">Stroke Memory App</h1>
+          <p className="mt-2 text-md text-slate-600">
+            {isRegistering ? 'Create your caregiver account' : 'Welcome back, Caregiver'}
+          </p>
+        </div>
+
+        <div className="bg-white p-8 shadow-xl rounded-lg">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <span className="block sm:inline">{error}</span>
+              </div>
+            )}
+            
+            {isRegistering && (
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-slate-700">
+                  Full Name
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    autoComplete="name"
+                    required
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+                Email address
+              </label>
+              <div className="mt-1">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
               </div>
             </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                Password
+              </label>
+              <div className="mt-1">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete={isRegistering ? 'new-password' : 'current-password'}
+                  required
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                {isRegistering ? 'Create Account' : 'Sign In'}
+              </button>
+            </div>
+          </form>
+
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegistering(!isRegistering);
+                setError('');
+                setFormData({ email: '', password: '', name: '' });
+              }}
+              className="text-sm text-indigo-600 hover:text-indigo-500"
+            >
+              {isRegistering ? 'Already have an account? Sign in' : 'No account? Create one'}
+            </button>
           </div>
         </div>
       </div>

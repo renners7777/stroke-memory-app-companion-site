@@ -83,6 +83,7 @@ const App = () => {
             loggedInUser ? (
               <CaregiverDashboard 
                 user={loggedInUser}
+                setLoggedInUser={setLoggedInUser}
                 userProgress={userProgress}
                 reminders={reminders}
                 journalEntries={journalEntries}
