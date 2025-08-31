@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-// No longer need useNavigate, it will be handled in App.jsx
-import { account } from '../lib/appwrite';
+import { account, databases, Query } from '../lib/appwrite';
+import Messaging from './Messaging'; // Make sure to import the Messaging component
 
 const StatCard = ({ title, value, icon }) => (
   <div className="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4">
@@ -20,8 +21,39 @@ StatCard.propTypes = {
   icon: PropTypes.node.isRequired,
 };
 
-// The component now receives a `logout` function instead of `setLoggedInUser`
 const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntries }) => {
+  const [associatedUsers, setAssociatedUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  useEffect(() => {
+    const fetchAssociatedUsers = async () => {
+      try {
+        // Fetch the relationships from the user_relationships collection
+        const response = await databases.listDocuments(
+          '68b213e7001400dc7f21', // Your database ID
+          'user_relationships', // Your user_relationships collection ID
+          [Query.equal('companion_id', user.$id)]
+        );
+
+        // Get the user IDs of the associated patients
+        const patientIds = response.documents.map((doc) => doc.patient_id);
+
+        if (patientIds.length > 0) {
+          // Fetch the user details for each patient
+          const userPromises = patientIds.map(id => databases.getDocument('68b213e7001400dc7f21', 'users', id));
+          const users = await Promise.all(userPromises);
+          setAssociatedUsers(users);
+          if(users.length > 0) {
+            setSelectedUser(users[0]); // Select the first user by default
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching associated users:', error);
+      }
+    };
+
+    fetchAssociatedUsers();
+  }, [user.$id]);
 
   const handleLogout = async () => {
     await logout();
@@ -51,6 +83,28 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
       </header>
 
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {/* User selection dropdown */}
+        <div className="mb-4">
+          <label htmlFor="user-select" className="block text-sm font-medium text-gray-700">Select a user to chat with:</label>
+          <select
+            id="user-select"
+            onChange={(e) => {
+              const userId = e.target.value;
+              const userToSelect = associatedUsers.find(u => u.$id === userId);
+              setSelectedUser(userToSelect);
+            }}
+            value={selectedUser?.$id || ''}
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+          >
+            {associatedUsers.map(u => (
+              <option key={u.$id} value={u.$id}>{u.name}</option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Messaging component */}
+        {selectedUser && <Messaging loggedInUser={user} selectedUser={selectedUser} />}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <StatCard 
@@ -113,7 +167,7 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
 
 CaregiverDashboard.propTypes = {
   user: PropTypes.object.isRequired,
-  logout: PropTypes.func.isRequired, // Changed from setLoggedInUser
+  logout: PropTypes.func.isRequired,
   userProgress: PropTypes.array,
   reminders: PropTypes.array.isRequired,
   journalEntries: PropTypes.array.isRequired
