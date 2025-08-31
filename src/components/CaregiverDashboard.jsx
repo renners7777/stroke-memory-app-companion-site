@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { account, databases, Query } from '../lib/appwrite';
+import { account, databases, Query, ID } from '../lib/appwrite';
 import Messaging from './Messaging'; // Make sure to import the Messaging component
 
 const StatCard = ({ title, value, icon }) => (
@@ -24,40 +24,86 @@ StatCard.propTypes = {
 const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntries }) => {
   const [associatedUsers, setAssociatedUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+
+  const fetchAssociatedUsers = async () => {
+    try {
+      // Fetch the relationships from the user_relationships collection
+      const response = await databases.listDocuments(
+        '68b213e7001400dc7f21', // Your database ID
+        'user_relationships', // Your user_relationships collection ID
+        [Query.equal('companion_id', user.$id)]
+      );
+
+      // Get the user IDs of the associated patients
+      const patientIds = response.documents.map((doc) => doc.patient_id);
+
+      if (patientIds.length > 0) {
+        // Fetch the user details for each patient
+        const userPromises = patientIds.map(id => databases.getDocument('68b213e7001400dc7f21', 'users', id));
+        const users = await Promise.all(userPromises);
+        setAssociatedUsers(users);
+        if(users.length > 0 && !selectedUser) {
+          setSelectedUser(users[0]); // Select the first user by default
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching associated users:', error);
+    }
+  };
+
 
   useEffect(() => {
-    const fetchAssociatedUsers = async () => {
-      try {
-        // Fetch the relationships from the user_relationships collection
-        const response = await databases.listDocuments(
-          '68b213e7001400dc7f21', // Your database ID
-          'user_relationships', // Your user_relationships collection ID
-          [Query.equal('companion_id', user.$id)]
-        );
-
-        // Get the user IDs of the associated patients
-        const patientIds = response.documents.map((doc) => doc.patient_id);
-
-        if (patientIds.length > 0) {
-          // Fetch the user details for each patient
-          const userPromises = patientIds.map(id => databases.getDocument('68b213e7001400dc7f21', 'users', id));
-          const users = await Promise.all(userPromises);
-          setAssociatedUsers(users);
-          if(users.length > 0) {
-            setSelectedUser(users[0]); // Select the first user by default
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching associated users:', error);
-      }
-    };
-
     fetchAssociatedUsers();
-  }, [user.$id]);
+  }, [user.$id, selectedUser]);
 
   const handleLogout = async () => {
     await logout();
   };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    try {
+        // Find the user by email
+        const userList = await databases.listDocuments(
+            '68b213e7001400dc7f21', // Your database ID
+            'users', // Your users collection ID
+            [Query.equal('email', newUserEmail)]
+        );
+
+        if (userList.documents.length === 0) {
+            setError('No user found with this email.');
+            return;
+        }
+
+        const userToAdd = userList.documents[0];
+
+        // Create the relationship
+        await databases.createDocument(
+            '68b213e7001400dc7f21', // Your database ID
+            'user_relationships', // Your user_relationships collection ID
+            ID.unique(),
+            {
+                companion_id: user.$id,
+                patient_id: userToAdd.$id
+            }
+        );
+
+        setSuccess(`Successfully added ${userToAdd.name}.`);
+        setNewUserEmail('');
+        fetchAssociatedUsers(); // Refresh the list of associated users
+    } catch (error) {
+        console.error('Error adding user:', error);
+        setError('Failed to add user. Please try again.');
+    }
+};
+
 
   const latestProgress = userProgress?.[0];
   const upcomingRemindersCount = reminders.length;
@@ -83,6 +129,33 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
       </header>
 
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {/* Add User Form */}
+        <div className="mb-8 bg-white p-6 rounded-xl shadow-md">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Add User</h2>
+          <form onSubmit={handleAddUser} className="space-y-4">
+            {error && <p className="text-red-500">{error}</p>}
+            {success && <p className="text-green-500">{success}</p>}
+            <div>
+              <label htmlFor="user-email" className="block text-sm font-medium text-gray-700">User's Email</label>
+              <input
+                type="email"
+                id="user-email"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                required
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Add User
+            </button>
+          </form>
+        </div>
+
+
         {/* User selection dropdown */}
         <div className="mb-4">
           <label htmlFor="user-select" className="block text-sm font-medium text-gray-700">Select a user to chat with:</label>
