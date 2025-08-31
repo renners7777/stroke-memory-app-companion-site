@@ -25,6 +25,7 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
   const [associatedUsers, setAssociatedUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newUserShareableId, setNewUserShareableId] = useState('');
+  const [userShareableId, setUserShareableId] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -55,8 +56,17 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
     }
   };
 
-
   useEffect(() => {
+    const fetchUserShareableId = async () => {
+      try {
+        const userDoc = await databases.getDocument('68b213e7001400dc7f21', 'users', user.$id);
+        setUserShareableId(userDoc.shareable_id);
+      } catch (error) {
+        console.error('Error fetching user shareable ID:', error);
+      }
+    };
+
+    fetchUserShareableId();
     fetchAssociatedUsers();
   }, [user.$id, selectedUser]);
 
@@ -129,6 +139,21 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
       </header>
 
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {/* Shareable ID Display */}
+        <div className="mb-8 bg-white p-6 rounded-xl shadow-md">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Your Shareable ID</h2>
+          <p className="text-gray-600 mb-4">Share this ID with your caregiver to connect your accounts.</p>
+          <div className="bg-gray-100 p-3 rounded-md flex items-center justify-between">
+            <span className="font-mono text-lg text-gray-800">{userShareableId}</span>
+            <button
+              onClick={() => navigator.clipboard.writeText(userShareableId)}
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Copy ID
+            </button>
+          </div>
+        </div>
+
         {/* Add User Form */}
         <div className="mb-8 bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Add User</h2>
@@ -193,7 +218,7 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
           <StatCard 
             title="Upcoming Reminders" 
             value={upcomingRemindersCount}
-            icon={<svg xmlns="http://www.w3.org/.svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>}
+            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>}
           />
         </div>
 
