@@ -24,7 +24,7 @@ StatCard.propTypes = {
 const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntries }) => {
   const [associatedUsers, setAssociatedUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserShareableId, setNewUserShareableId] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -70,15 +70,15 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
     setSuccess('');
 
     try {
-        // Find the user by email
+        // Find the user by shareable_id
         const userList = await databases.listDocuments(
             '68b213e7001400dc7f21', // Your database ID
             'users', // Your users collection ID
-            [Query.equal('email', newUserEmail)]
+            [Query.equal('shareable_id', newUserShareableId)]
         );
 
         if (userList.documents.length === 0) {
-            setError('No user found with this email.');
+            setError('No user found with this ID.');
             return;
         }
 
@@ -96,7 +96,7 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
         );
 
         setSuccess(`Successfully added ${userToAdd.name}.`);
-        setNewUserEmail('');
+        setNewUserShareableId('');
         fetchAssociatedUsers(); // Refresh the list of associated users
     } catch (error) {
         console.error('Error adding user:', error);
@@ -136,12 +136,12 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
             {error && <p className="text-red-500">{error}</p>}
             {success && <p className="text-green-500">{success}</p>}
             <div>
-              <label htmlFor="user-email" className="block text-sm font-medium text-gray-700">User's Email</label>
+              <label htmlFor="user-shareable-id" className="block text-sm font-medium text-gray-700">User's Shareable ID</label>
               <input
-                type="email"
-                id="user-email"
-                value={newUserEmail}
-                onChange={(e) => setNewUserEmail(e.target.value)}
+                type="text"
+                id="user-shareable-id"
+                value={newUserShareableId}
+                onChange={(e) => setNewUserShareableId(e.target.value)}
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               />
@@ -193,7 +193,7 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
           <StatCard 
             title="Upcoming Reminders" 
             value={upcomingRemindersCount}
-            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>}
+            icon={<svg xmlns="http://www.w3.org/.svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>}
           />
         </div>
 

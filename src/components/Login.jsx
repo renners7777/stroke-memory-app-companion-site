@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { account, ID } from '../lib/appwrite';
+import { account, ID, databases } from '../lib/appwrite';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
@@ -39,7 +39,23 @@ const Login = ({ setLoggedInUser }) => {
         return;
       }
       
-      await account.create(ID.unique(), email, password, name);
+      const newUser = await account.create(ID.unique(), email, password, name);
+      const userId = newUser.$id;
+
+      // Generate a simple, shareable ID
+      const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+      // Save user details to the 'users' collection
+      await databases.createDocument(
+        '68b213e7001400dc7f21', // Database ID
+        'users', // Collection ID for users
+        userId,
+        {
+          name: name,
+          email: email,
+          shareable_id: shareableId
+        }
+      );
       
       // If registration successful, log the user in
       await login(email, password);
