@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { account, ID, databases } from '../lib/appwrite';
+import { account, ID, databases, Permission, Role } from '../lib/appwrite';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
@@ -54,7 +54,10 @@ const Login = ({ setLoggedInUser }) => {
           name: name,
           email: email,
           shareable_id: shareableId
-        }
+        },
+        [
+          Permission.read(Role.users()), // Allow any authenticated user to read the document
+        ]
       );
       
       // If registration successful, log the user in
@@ -86,7 +89,7 @@ const Login = ({ setLoggedInUser }) => {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-extrabold text-slate-900">Stroke Memory App</h1>
           <p className="mt-2 text-md text-slate-600">
-            {isRegistering ? 'Create your caregiver account' : 'Welcome back, Caregiver'}
+            {isRegistering ? 'Create your account' : 'Welcome back'}
           </p>
         </div>
 
