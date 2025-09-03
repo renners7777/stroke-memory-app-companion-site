@@ -28,8 +28,6 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
   const [userShareableId, setUserShareableId] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-}
-
 
   const fetchAssociatedUsers = async () => {
     try {
@@ -113,8 +111,7 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
         console.error('Error adding user:', error);
         setError('Failed to add user. Please try again.');
     }
-};
-
+  };
 
   const latestProgress = userProgress?.[0];
   const upcomingRemindersCount = reminders.length;
@@ -194,7 +191,12 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
                 required
               />
             </div>
-            {/* Add the submit button back */}
+            <button
+              type="submit"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Add User
+            </button>
           </form>
         </div>
         {/* Stats Grid */}
@@ -254,7 +256,8 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
         </div>
       </main>
     </div>
-);
+  );
+};
 
 CaregiverDashboard.propTypes = {
   user: PropTypes.object.isRequired,
