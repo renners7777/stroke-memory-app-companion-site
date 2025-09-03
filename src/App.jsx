@@ -12,6 +12,7 @@ const App = () => {
   const [userProgress, setUserProgress] = useState(null);
   const [reminders, setReminders] = useState([]);
   const [journalEntries, setJournalEntries] = useState([]);
+  const [loading, setLoading] = useState(true); // Add loading state
 
   const fetchUserData = useCallback(async (userId) => {
     try {
@@ -59,6 +60,8 @@ const App = () => {
         setLoggedInUser(user);
       } catch (error) {
         setLoggedInUser(null);
+      } finally {
+        setLoading(false);
       }
     };
     checkSession();
@@ -75,6 +78,10 @@ const App = () => {
       setJournalEntries([]);
     }
   }, [loggedInUser, fetchUserData]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Show a loading indicator while checking session
+  }
 
   return (
     <Router>
