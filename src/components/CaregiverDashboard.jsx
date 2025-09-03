@@ -163,7 +163,7 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
         <div className="mb-8 bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Your Shareable ID</h2>
           {/* Updated text */}
-          <p className="text-gray-600 mb-4">Share this ID with the user to connect your accounts.</p>
+          <p className="text-gray-600 mb-4">Share this ID with the stroke survivor to connect your accounts.</p>
           <div className="bg-gray-100 p-3 rounded-md flex items-center justify-between">
             <span className="font-mono text-lg text-gray-800">{userShareableId}</span>
             <button
