@@ -139,21 +139,6 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
       </header>
 
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {/* Shareable ID Display */}
-        <div className="mb-8 bg-white p-6 rounded-xl shadow-md">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Your Shareable ID</h2>
-          <p className="text-gray-600 mb-4">Share this ID with your caregiver to connect your accounts.</p>
-          <div className="bg-gray-100 p-3 rounded-md flex items-center justify-between">
-            <span className="font-mono text-lg text-gray-800">{userShareableId}</span>
-            <button
-              onClick={() => navigator.clipboard.writeText(userShareableId)}
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Copy ID
-            </button>
-          </div>
-        </div>
-
         {/* Add User Form */}
         <div className="mb-8 bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Add User</h2>
