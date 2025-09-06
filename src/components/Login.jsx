@@ -39,13 +39,17 @@ const Login = ({ setLoggedInUser }) => {
         return;
       }
       
+      // 1. Create the user account
       const newUser = await account.create(ID.unique(), email, password, name);
       const userId = newUser.$id;
 
-      // Generate a simple, shareable ID
+      // 2. Log the new user in immediately to create an active session
+      const session = await account.createEmailPasswordSession(email, password);
+      setLoggedInUser(await account.get());
+
+      // 3. As a logged-in user, create the profile document with secure permissions
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-      // Save user details to the 'users' collection
       await databases.createDocument(
         '68b213e7001400dc7f21', // Database ID
         'users', // Collection ID for users
@@ -56,12 +60,14 @@ const Login = ({ setLoggedInUser }) => {
           shareable_id: shareableId
         },
         [
-          Permission.read(Role.users()), // Allow any authenticated user to read the document
+          Permission.read(Role.user(userId)),
+          Permission.update(Role.user(userId)),
         ]
       );
       
-      // If registration successful, log the user in
-      await login(email, password);
+      // 4. Navigate to the dashboard
+      navigate('/dashboard');
+
     } catch (e) {
       console.error('Registration error:', e);
       if (e.code === 409) {
