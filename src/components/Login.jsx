@@ -46,39 +46,42 @@ const Login = ({ setLoggedInUser }) => {
         setError('All fields, including role, are required for registration.');
         return;
       }
-      
+
+      // --- CORRECTED ORDER OF OPERATIONS ---
+
+      // 1. Create the authentication account first.
       const newUser = await account.create(ID.unique(), email, password, name);
       const userId = newUser.$id;
 
-      // Log the user in immediately after registration
-      await account.createEmailPasswordSession(email, password);
-      setLoggedInUser(await account.get());
-
-      // Create a unique, easy-to-share ID
+      // 2. BEFORE logging in, create the user's document in the database with their role.
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-      // Store user details, including their chosen role, in the database
       await databases.createDocument(
         '68b213e7001400dc7f21', // Database ID
-        'users', // Collection ID for users
-        userId,
+        'users',              // Users collection ID
+        userId,               // Use the new user's ID for the document ID
         {
           name: name,
           email: email,
           shareable_id: shareableId,
-          role: role, // Save the selected role
+          role: role,           // Include the selected role
         },
         [
           Permission.read(Role.user(userId)),
           Permission.update(Role.user(userId)),
         ]
       );
+
+      // 3. NOW, it is safe to log the user in. The dashboard will find the role.
+      await account.createEmailPasswordSession(email, password);
+      setLoggedInUser(await account.get());
       
+      // 4. Navigate to the dashboard.
       navigate('/dashboard');
 
     } catch (e) {
       console.error('Registration error:', e);
-      if (e.code === 409) {
+      // If registration fails, clean up the auth account if it was created
+      if (e.code === 409) { // User already exists
         setError('User with this email already exists. Please sign in.');
       } else {
         setError(e.message || 'Registration failed.');
