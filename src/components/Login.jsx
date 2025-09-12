@@ -40,6 +40,7 @@ const Login = ({ setLoggedInUser }) => {
   }
 
   async function register(email, password, name, role) {
+    let newUser;
     try {
       setError('');
       if (!email || !password || !name || !role) {
@@ -47,13 +48,17 @@ const Login = ({ setLoggedInUser }) => {
         return;
       }
 
-      // --- CORRECTED ORDER OF OPERATIONS ---
+      // --- DEINITIVE, CORRECTED ORDER OF OPERATIONS ---
 
-      // 1. Create the authentication account first.
-      const newUser = await account.create(ID.unique(), email, password, name);
+      // 1. Create the authentication account.
+      newUser = await account.create(ID.unique(), email, password, name);
       const userId = newUser.$id;
 
-      // 2. BEFORE logging in, create the user's document in the database with their role.
+      // 2. Log the new user in to establish a session.
+      await account.createEmailPasswordSession(email, password);
+
+      // 3. WITH an active session, create the user's document in the database.
+      // This allows setting user-specific permissions and ensures the doc exists before the dashboard loads.
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
       await databases.createDocument(
         '68b213e7001400dc7f21', // Database ID
@@ -71,19 +76,24 @@ const Login = ({ setLoggedInUser }) => {
         ]
       );
 
-      // 3. NOW, it is safe to log the user in. The dashboard will find the role.
-      await account.createEmailPasswordSession(email, password);
+      // 4. NOW, update the app's state. The dashboard will load and find the user document.
       setLoggedInUser(await account.get());
       
-      // 4. Navigate to the dashboard.
+      // 5. Navigate to the dashboard.
       navigate('/dashboard');
 
     } catch (e) {
       console.error('Registration error:', e);
-      // If registration fails, clean up the auth account if it was created
-      if (e.code === 409) { // User already exists
+      if (e.code === 409) { // User with this email already exists
         setError('User with this email already exists. Please sign in.');
       } else {
+        // If registration failed after auth account was created, clean it up.
+        if (newUser) {
+          // This part is tricky as you need admin rights to delete a user.
+          // For this app, we'll just show an error. In a real-world scenario,
+          // you would have a cleanup process.
+          console.error('An auth account was created but database setup failed.');
+        }
         setError(e.message || 'Registration failed.');
       }
     }
