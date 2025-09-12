@@ -100,6 +100,7 @@ const App = () => {
                 logout={logout} // Pass the centralized logout function
                 userProgress={userProgress}
                 reminders={reminders}
+                setReminders={setReminders} // Pass the setter function down
                 journalEntries={journalEntries}
               />
             ) : (

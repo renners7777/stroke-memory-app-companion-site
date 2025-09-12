@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { account, databases, Query, ID } from '../lib/appwrite';
+import { account, databases, Query, ID, Permission, Role } from '../lib/appwrite';
 import Messaging from './Messaging';
 
 // A smaller, reusable card for displaying stats
@@ -20,13 +20,15 @@ StatCard.propTypes = {
   icon: PropTypes.node.isRequired,
 };
 
-const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntries }) => {
+const CaregiverDashboard = ({ user, logout, userProgress, reminders, setReminders, journalEntries }) => {
   const [associatedUsers, setAssociatedUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newUserShareableId, setNewUserShareableId] = useState('');
   const [userShareableId, setUserShareableId] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [newReminderTitle, setNewReminderTitle] = useState('');
+  const [newReminderDate, setNewReminderDate] = useState('');
 
   // --- Data Fetching ---
   useEffect(() => {
@@ -122,6 +124,40 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
     }
   };
 
+  const handleAddReminder = async (e) => {
+    e.preventDefault();
+    if (!newReminderTitle || !newReminderDate || !selectedUser) {
+      alert('Please fill in all fields and select a user.');
+      return;
+    }
+
+    try {
+      const newReminder = await databases.createDocument(
+        '68b213e7001400dc7f21', // Database ID
+        'reminders_table',    // Reminders collection ID
+        ID.unique(),
+        {
+          title: newReminderTitle,
+          dateTime: newReminderDate,
+          userID: selectedUser.$id, // Associate reminder with the selected patient
+        },
+        [
+          Permission.read(Role.user(selectedUser.$id)), // Patient can read
+          Permission.read(Role.user(user.$id)),       // Caregiver can read
+          Permission.update(Role.user(user.$id)),      // Caregiver can update
+          Permission.delete(Role.user(user.$id)),      // Caregiver can delete
+        ]
+      );
+
+      setReminders(prev => [...prev, newReminder]); // Optimistically update UI
+      setNewReminderTitle('');
+      setNewReminderDate('');
+    } catch (error) {
+      console.error('Error creating reminder:', error);
+      alert('Failed to create reminder.');
+    }
+  };
+
   const latestProgress = userProgress?.[0];
 
   // --- Render ---
@@ -194,7 +230,7 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
             {/* User Selection & Messaging */}
             {associatedUsers.length > 0 && (
               <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">Chat with a Patient</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-4">Chat with {selectedUser?.name || 'a Patient'}</h2>
                 <select
                   onChange={(e) => {
                     const userToSelect = associatedUsers.find(u => u.$id === e.target.value);
@@ -255,8 +291,8 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
               </section>
 
               <section className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">Upcoming Reminders</h2>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">Upcoming Reminders for {selectedUser?.name}</h2>
+                <div className="space-y-3 max-h-80 overflow-y-auto">
                   {reminders.length > 0 ? reminders.map(reminder => (
                     <div key={reminder.$id} className="border-l-4 border-blue-500 pl-3">
                       <p className="font-semibold text-gray-800 text-sm">{reminder.title}</p>
@@ -266,6 +302,29 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, journalEntr
                     <p className="text-gray-500 text-center py-4">No upcoming reminders.</p>
                   )}
                 </div>
+                {selectedUser && (
+                  <form onSubmit={handleAddReminder} className="mt-4 pt-4 border-t space-y-2">
+                    <input 
+                      type="text"
+                      placeholder="New reminder title"
+                      value={newReminderTitle}
+                      onChange={(e) => setNewReminderTitle(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                    <input 
+                      type="datetime-local"
+                      value={newReminderDate}
+                      onChange={(e) => setNewReminderDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm font-medium"
+                    >
+                      Add Reminder
+                    </button>
+                  </form>
+                )}
               </section>
             </div>
           </div>
@@ -280,6 +339,7 @@ CaregiverDashboard.propTypes = {
   logout: PropTypes.func.isRequired,
   userProgress: PropTypes.array,
   reminders: PropTypes.array.isRequired,
+  setReminders: PropTypes.func.isRequired,
   journalEntries: PropTypes.array.isRequired
 };
 
