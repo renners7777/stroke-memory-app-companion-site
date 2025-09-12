@@ -2,7 +2,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Home from './components/Home';
 import Login from './components/Login';
 import CaregiverDashboard from './components/CaregiverDashboard';
-import PatientDashboard from './components/PatientDashboard'; // Import new dashboard
+import PatientDashboard from './components/PatientDashboard';
 import { useState, useEffect, useCallback } from 'react';
 import { account, databases, Query } from './lib/appwrite';
 import PropTypes from 'prop-types';
@@ -19,9 +19,9 @@ const DashboardRenderer = ({ userRole, user, logout, reminders, setReminders, jo
       <CaregiverDashboard 
         user={user}
         logout={logout}
-        reminders={reminders} // These will be for the selected patient, managed inside the component
+        reminders={reminders}
         setReminders={setReminders} 
-        journalEntries={journalEntries} // Same as above
+        journalEntries={journalEntries}
       />
     );
   }
@@ -31,8 +31,8 @@ const DashboardRenderer = ({ userRole, user, logout, reminders, setReminders, jo
       <PatientDashboard 
         user={user}
         logout={logout}
-        reminders={reminders} // These are the patient's own reminders
-        journalEntries={journalEntries} // These are the patient's own journal entries
+        reminders={reminders}
+        journalEntries={journalEntries}
       />
     );
   }
@@ -57,11 +57,10 @@ const App = () => {
   const [journalEntries, setJournalEntries] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserData = useCallback(async (userId, role) => {
+  // This function is now only for patients, as caregivers fetch patient data separately.
+  const fetchPatientData = useCallback(async (userId) => {
     try {
-      console.log(`Fetching initial data for ${role}:`, userId);
-      // For a patient, fetch their own data. For a caregiver, this will fetch their (likely empty) data.
-      // The CaregiverDashboard component is responsible for fetching data for the *selected* patient.
+      console.log('Fetching data for patient:', userId);
       const userReminders = await databases.listDocuments(
         '68b213e7001400dc7f21',
         'reminders_table',
@@ -106,9 +105,9 @@ const App = () => {
     checkSession();
   }, []);
 
-  // When a user logs in, determine their role and fetch their initial data
+  // When a user logs in, fetch their role from the 'users' table and their data
   useEffect(() => {
-    const determineRoleAndFetchData = async () => {
+    const fetchRoleAndData = async () => {
       if (!loggedInUser) {
         setUserRole(null);
         setReminders([]);
@@ -116,32 +115,37 @@ const App = () => {
         return;
       }
 
-      console.log('User logged in, determining role...');
+      console.log('User logged in, fetching role from database...');
       try {
-        // Check if this user is a companion in any relationship
-        const response = await databases.listDocuments(
+        // Fetch the user's document from the 'users' collection
+        const userDoc = await databases.getDocument(
           '68b213e7001400dc7f21', // Database ID
-          'user_relationships',     // Collection ID for relationships
-          [Query.equal('companion_id', loggedInUser.$id)]
+          'users',              // Users collection ID
+          loggedInUser.$id      // User's document ID
         );
         
-        const role = response.documents.length > 0 ? 'caregiver' : 'patient';
-        setUserRole(role);
-        console.log('User role determined as:', role);
-        
-        // Fetch initial data relevant to the logged-in user
-        fetchUserData(loggedInUser.$id, role);
+        const role = userDoc.role;
+        if (role) {
+          setUserRole(role);
+          console.log('User role set from database:', role);
+          // If the user is a patient, fetch their initial data.
+          // A caregiver's dashboard handles its own data fetching based on the selected patient.
+          if (role === 'patient') {
+            fetchPatientData(loggedInUser.$id);
+          }
+        } else {
+           throw new Error('Role not found in user document.');
+        }
 
       } catch (error) {
-        console.error('Error determining user role:', error);
-        // Default to patient role on error to avoid blocking the user
-        setUserRole('patient');
-        fetchUserData(loggedInUser.$id, 'patient');
+        console.error('Error fetching user role:', error);
+        // Fallback or error handling
+        setUserRole(null);
       }
     };
     
-    determineRoleAndFetchData();
-  }, [loggedInUser, fetchUserData]);
+    fetchRoleAndData();
+  }, [loggedInUser, fetchPatientData]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;

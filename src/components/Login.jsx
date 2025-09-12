@@ -9,15 +9,16 @@ const Login = ({ setLoggedInUser }) => {
     email: '',
     password: '',
     name: '',
+    role: 'patient', // Default role
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   // --- Demo accounts for Hackathon testing ---
   const demoUsers = [
-    { name: 'Catherine (Companion)', email: 'catherine@demo.com', password: 'password123' },
-    { name: 'John (Patient)', email: 'john@demo.com', password: 'password123' },
-    { name: 'Jane (Patient)', email: 'jane@demo.com', password: 'password123' },
+    { name: 'Catherine (Companion)', email: 'catherine@demo.com', password: 'password123', role: 'caregiver' },
+    { name: 'John (Patient)', email: 'john@demo.com', password: 'password123', role: 'patient' },
+    { name: 'Jane (Patient)', email: 'jane@demo.com', password: 'password123', role: 'patient' },
   ];
 
   const handleInputChange = (e) => {
@@ -38,22 +39,25 @@ const Login = ({ setLoggedInUser }) => {
     }
   }
 
-  async function register(email, password, name) {
+  async function register(email, password, name, role) {
     try {
       setError('');
-      if (!email || !password || !name) {
-        setError('All fields are required for registration.');
+      if (!email || !password || !name || !role) {
+        setError('All fields, including role, are required for registration.');
         return;
       }
       
       const newUser = await account.create(ID.unique(), email, password, name);
       const userId = newUser.$id;
 
+      // Log the user in immediately after registration
       await account.createEmailPasswordSession(email, password);
       setLoggedInUser(await account.get());
 
+      // Create a unique, easy-to-share ID
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
+      // Store user details, including their chosen role, in the database
       await databases.createDocument(
         '68b213e7001400dc7f21', // Database ID
         'users', // Collection ID for users
@@ -61,7 +65,8 @@ const Login = ({ setLoggedInUser }) => {
         {
           name: name,
           email: email,
-          shareable_id: shareableId
+          shareable_id: shareableId,
+          role: role, // Save the selected role
         },
         [
           Permission.read(Role.user(userId)),
@@ -83,10 +88,10 @@ const Login = ({ setLoggedInUser }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { email, password, name } = formData;
+    const { email, password, name, role } = formData;
 
     if (isRegistering) {
-      await register(email, password, name);
+      await register(email, password, name, role);
     } else {
       await login(email, password);
     }
@@ -96,7 +101,8 @@ const Login = ({ setLoggedInUser }) => {
     setFormData({
       email: user.email,
       password: user.password,
-      name: user.name.split(' ')[0] // Extract first name for registration
+      name: user.name.split(' (')[0], // Extract first name
+      role: user.role
     });
     setError(''); // Clear any previous errors
   };
@@ -120,15 +126,24 @@ const Login = ({ setLoggedInUser }) => {
             )}
             
             {isRegistering && (
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-slate-700">Full Name</label>
-                <input id="name" name="name" type="text" required value={formData.name} onChange={handleInputChange} className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-              </div>
+              <>
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-slate-700">Full Name</label>
+                  <input id="name" name="name" type="text" required value={formData.name} onChange={handleInputChange} className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                </div>
+                <div>
+                  <label htmlFor="role" className="block text-sm font-medium text-slate-700">Your Role</label>
+                  <select id="role" name="role" value={formData.role} onChange={handleInputChange} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-slate-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    <option value="patient">I am a Patient</option>
+                    <option value="caregiver">I am a Companion / Caregiver</option>
+                  </select>
+                </div>
+              </>
             )}
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-700">Email address</label>
-              <input id="email" name="email" type="email" required value={formData.email} onChange={handleInputChange} className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+              <input id="email" name="email" type="email" autoComplete="email" required value={formData.email} onChange={handleInputChange} className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
             </div>
 
             <div>
@@ -154,7 +169,7 @@ const Login = ({ setLoggedInUser }) => {
         <div className="mt-8 w-full max-w-md">
             <div className="bg-white p-6 shadow-xl rounded-lg">
                 <h3 className="text-lg font-bold text-slate-800 text-center mb-4">Demo Accounts</h3>
-                <p className="text-center text-sm text-slate-600 mb-4">First time? Use these to register. Otherwise, just sign in.</p>
+                <p className="text-center text-sm text-slate-600 mb-4">First time? Use these to register with the correct role. Otherwise, just sign in.</p>
                 <div className="space-y-3">
                     {demoUsers.map(user => (
                         <div key={user.email} className="p-3 bg-slate-50 rounded-lg flex items-center justify-between">
