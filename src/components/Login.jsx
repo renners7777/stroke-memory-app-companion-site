@@ -13,6 +13,13 @@ const Login = ({ setLoggedInUser }) => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // --- Demo accounts for Hackathon testing ---
+  const demoUsers = [
+    { name: 'Catherine (Companion)', email: 'catherine@demo.com', password: 'password123' },
+    { name: 'John (Patient)', email: 'john@demo.com', password: 'password123' },
+    { name: 'Jane (Patient)', email: 'jane@demo.com', password: 'password123' },
+  ];
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -39,15 +46,12 @@ const Login = ({ setLoggedInUser }) => {
         return;
       }
       
-      // 1. Create the user account
       const newUser = await account.create(ID.unique(), email, password, name);
       const userId = newUser.$id;
 
-      // 2. Log the new user in immediately to create an active session
-      const session = await account.createEmailPasswordSession(email, password);
+      await account.createEmailPasswordSession(email, password);
       setLoggedInUser(await account.get());
 
-      // 3. As a logged-in user, create the profile document with secure permissions
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
       await databases.createDocument(
@@ -65,13 +69,12 @@ const Login = ({ setLoggedInUser }) => {
         ]
       );
       
-      // 4. Navigate to the dashboard
       navigate('/dashboard');
 
     } catch (e) {
       console.error('Registration error:', e);
       if (e.code === 409) {
-        setError('User with this email already exists.');
+        setError('User with this email already exists. Please sign in.');
       } else {
         setError(e.message || 'Registration failed.');
       }
@@ -89,11 +92,20 @@ const Login = ({ setLoggedInUser }) => {
     }
   };
 
+  const useDemoAccount = (user) => {
+    setFormData({
+      email: user.email,
+      password: user.password,
+      name: user.name.split(' ')[0] // Extract first name for registration
+    });
+    setError(''); // Clear any previous errors
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold text-slate-900">Stroke Memory App</h1>
+          <h1 className="text-4xl font-extrabold text-slate-900">Stroke Recovery Hub</h1>
           <p className="mt-2 text-md text-slate-600">
             {isRegistering ? 'Create your account' : 'Welcome back'}
           </p>
@@ -109,84 +121,56 @@ const Login = ({ setLoggedInUser }) => {
             
             {isRegistering && (
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-slate-700">
-                  Full Name
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    autoComplete="name"
-                    required
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  />
-                </div>
+                <label htmlFor="name" className="block text-sm font-medium text-slate-700">Full Name</label>
+                <input id="name" name="name" type="text" required value={formData.name} onChange={handleInputChange} className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
               </div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-                Email address
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-              </div>
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700">Email address</label>
+              <input id="email" name="email" type="email" required value={formData.email} onChange={handleInputChange} className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-                Password
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete={isRegistering ? 'new-password' : 'current-password'}
-                  required
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-              </div>
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700">Password</label>
+              <input id="password" name="password" type="password" required value={formData.password} onChange={handleInputChange} className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
             </div>
 
             <div>
-              <button
-                type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
+              <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                 {isRegistering ? 'Create Account' : 'Sign In'}
               </button>
             </div>
           </form>
 
           <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegistering(!isRegistering);
-                setError('');
-                setFormData({ email: '', password: '', name: '' });
-              }}
-              className="text-sm text-indigo-600 hover:text-indigo-500"
-            >
+            <button type="button" onClick={() => { setIsRegistering(!isRegistering); setError(''); }} className="text-sm text-indigo-600 hover:text-indigo-500">
               {isRegistering ? 'Already have an account? Sign in' : 'No account? Create one'}
             </button>
           </div>
         </div>
+
+        {/* Demo Accounts Section */}
+        <div className="mt-8 w-full max-w-md">
+            <div className="bg-white p-6 shadow-xl rounded-lg">
+                <h3 className="text-lg font-bold text-slate-800 text-center mb-4">Demo Accounts</h3>
+                <p className="text-center text-sm text-slate-600 mb-4">First time? Use these to register. Otherwise, just sign in.</p>
+                <div className="space-y-3">
+                    {demoUsers.map(user => (
+                        <div key={user.email} className="p-3 bg-slate-50 rounded-lg flex items-center justify-between">
+                            <div>
+                                <p className="font-semibold text-slate-700">{user.name}</p>
+                                <p className="text-xs text-slate-500">{user.email} / pw: {user.password}</p>
+                            </div>
+                            <button onClick={() => useDemoAccount(user)} className="px-3 py-1 text-sm font-medium text-white bg-indigo-500 rounded-md hover:bg-indigo-600 focus:outline-none">
+                                Use
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+
       </div>
     </div>
   );
