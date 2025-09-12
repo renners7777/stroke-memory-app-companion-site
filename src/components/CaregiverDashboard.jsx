@@ -24,7 +24,6 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, setReminder
   const [associatedUsers, setAssociatedUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newUserShareableId, setNewUserShareableId] = useState('');
-  const [userShareableId, setUserShareableId] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [newReminderTitle, setNewReminderTitle] = useState('');
@@ -32,16 +31,6 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, setReminder
 
   // --- Data Fetching ---
   useEffect(() => {
-    // Fetch the current user's shareable ID
-    const fetchUserShareableId = async () => {
-      try {
-        const userDoc = await databases.getDocument('68b213e7001400dc7f21', 'users', user.$id);
-        setUserShareableId(userDoc.shareable_id);
-      } catch (err) {
-        console.error('Error fetching shareable ID:', err);
-      }
-    };
-
     // Fetch users associated with the current user (caregiver)
     const fetchAssociatedUsers = async () => {
       try {
@@ -66,7 +55,6 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, setReminder
       }
     };
 
-    fetchUserShareableId();
     fetchAssociatedUsers();
   }, [user.$id, selectedUser]); // Reruns when user changes
 
@@ -211,20 +199,6 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, setReminder
               </form>
               {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
               {success && <p className="text-green-500 text-xs mt-2">{success}</p>}
-
-              <div className="mt-6 border-t pt-4">
-                 <h3 className="text-md font-bold text-gray-800 mb-2">Your Shareable ID</h3>
-                 <p className="text-sm text-gray-600 mb-3">A patient can add you as a companion using this ID.</p>
-                 <div className="bg-gray-100 p-2 rounded-md flex items-center justify-between">
-                   <span className="font-mono text-gray-800">{userShareableId}</span>
-                   <button
-                     onClick={() => navigator.clipboard.writeText(userShareableId)}
-                     className="text-sm font-medium text-blue-600 hover:text-blue-500"
-                   >
-                     Copy
-                   </button>
-                 </div>
-              </div>
             </div>
 
             {/* User Selection & Messaging */}
