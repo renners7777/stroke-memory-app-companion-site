@@ -102,14 +102,15 @@ const CaregiverDashboard = ({ user, logout }) => {
         return;
       }
 
-      // FINAL TEST: Relying ONLY on collection-level permissions.
+      // DIAGNOSTIC TEST: Attempting to create a document in a known-good collection.
       await databases.createDocument(
         '68b213e7001400dc7f21',
-        'user_relationships',
+        'reminders_table', // <<< TEMPORARY CHANGE FOR TEST
         ID.unique(),
         {
-          companion_id: user.$id,
-          patient_id: userToAdd.$id
+          userID: userToAdd.$id,
+          title: `Connection Test - ${userToAdd.name}`,
+          time: new Date().toISOString(),
         }
       );
       
