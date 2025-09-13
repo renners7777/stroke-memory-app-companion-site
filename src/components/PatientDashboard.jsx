@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { databases, ID, Query, Permission, Role } from '../lib/appwrite';
+import { databases, ID, Query } from '../lib/appwrite';
 import PropTypes from 'prop-types';
 import Messaging from './Messaging';
 
@@ -59,7 +59,7 @@ const PatientDashboard = ({ user }) => {
     fetchPatientData();
   }, [user]);
 
-  // Corrected function to handle journal entries with proper permissions
+  // Simplified journal entry creation
   const handleAddJournalEntry = async (e) => {
     e.preventDefault();
     if (!newJournalEntry.trim()) {
@@ -69,28 +69,18 @@ const PatientDashboard = ({ user }) => {
 
     setError(null);
 
-    // Base permissions for the patient themselves
-    const permissions = [
-        Permission.read(Role.user(user.$id)),
-        Permission.update(Role.user(user.$id)),
-        Permission.delete(Role.user(user.$id)),
-    ];
-
-    // If a caregiver is linked, grant them read access as well
-    if (user.caregiver_id) {
-        permissions.push(Permission.read(Role.user(user.caregiver_id)));
-    }
-
     try {
       await databases.createDocument(
         '68b213e7001400dc7f21',
         'journal_table',
         ID.unique(),
         {
-          userID: user.$id,
+          userID: user.$id, // The patient creating the entry
           entry_text: newJournalEntry,
-        },
-        permissions // Use the dynamically created permissions array
+          // The linked caregiver's ID is stored on the user object,
+          // so we don't need to add it here. We can use it in queries.
+        }
+        // Permissions parameter removed
       );
       setNewJournalEntry('');
       // Refresh list after adding
@@ -109,6 +99,8 @@ const PatientDashboard = ({ user }) => {
   const handleToggleReminder = async (reminderId, currentStatus) => {
     setError(null);
     try {
+      // This update relies on the user having document-level write access.
+      // The collection-level permission 'users' with 'update' should grant this.
       await databases.updateDocument(
         '68b213e7001400dc7f21', 
         'reminders_table', 
@@ -124,7 +116,7 @@ const PatientDashboard = ({ user }) => {
       setReminders(reminderResponse.documents);
     } catch (err) {
       console.error('Failed to update reminder:', err);
-      setError('Failed to update reminder status.');
+      setError(`Failed to update reminder status: ${err.message}`);
     }
   };
 

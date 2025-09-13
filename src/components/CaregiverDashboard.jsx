@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { databases, ID, Query, Permission, Role } from '../lib/appwrite';
+import { databases, ID, Query } from '../lib/appwrite';
 import PropTypes from 'prop-types';
 import Chat from './Chat';
 
@@ -45,8 +45,10 @@ const CaregiverDashboard = ({ user }) => {
     const fetchData = async () => {
       setError(null);
       try {
+        // A patient's data is identified by their own user ID.
         const commonQuery = [Query.equal('userID', selectedPatient.$id)];
 
+        // To read reminders, caregiver relies on collection-level permissions
         const reminderResponse = await databases.listDocuments(
           '68b213e7001400dc7f21',
           'reminders_table',
@@ -54,6 +56,7 @@ const CaregiverDashboard = ({ user }) => {
         );
         setReminders(reminderResponse.documents);
 
+        // To read journals, caregiver relies on collection-level permissions
         const journalResponse = await databases.listDocuments(
           '68b213e7001400dc7f21',
           'journal_table',
@@ -62,14 +65,13 @@ const CaregiverDashboard = ({ user }) => {
         setJournalEntries(journalResponse.documents);
       } catch (err) {
         console.error(`Failed to fetch data for ${selectedPatient.name}:`, err);
-        setError(`Could not load data for ${selectedPatient.name}. This may be a permissions issue. Ensure the patient has shared their journal with you.`);
+        setError(`Could not load data for ${selectedPatient.name}. Please check collection permissions.`);
       }
     };
 
     fetchData();
   }, [selectedPatient]);
 
-  // Function to link a patient using their shareable ID
   const handleLinkPatient = async (e) => {
     e.preventDefault();
     setError(null);
@@ -91,6 +93,9 @@ const CaregiverDashboard = ({ user }) => {
 
       const patientToLink = patientResponse.documents[0];
 
+      // This action requires the caregiver to have write permission on the patient's user document.
+      // This is a significant permission to grant. 
+      // For this to work, the 'users' collection must allow 'users' to write.
       await databases.updateDocument(
         '68b213e7001400dc7f21',
         'users',
@@ -102,11 +107,11 @@ const CaregiverDashboard = ({ user }) => {
       await fetchPatients();
     } catch (err) {
       console.error('Failed to link patient:', err);
-      setError('Failed to link patient. Please check the ID and try again.');
+      setError(`Failed to link patient: ${err.message}. Check collection permissions.`);
     }
   };
 
-  // Corrected function to add a reminder with proper permissions
+  // Simplified reminder creation, relying on collection-level permissions.
   const handleAddReminder = async (e) => {
     e.preventDefault();
     if (!newReminderText || !newReminderDate || !selectedPatient) return;
@@ -118,18 +123,13 @@ const CaregiverDashboard = ({ user }) => {
         'reminders_table',
         ID.unique(),
         {
-          userID: selectedPatient.$id,
+          userID: selectedPatient.$id, // The patient this reminder is for
+          creatorID: user.$id, // The caregiver who created it
           reminder_text: newReminderText,
           reminder_date: newReminderDate,
           completed: false,
-        },
-        [
-          Permission.read(Role.user(selectedPatient.$id)),
-          Permission.read(Role.user(user.$id)),
-          Permission.update(Role.user(selectedPatient.$id)), // Allow patient to mark as complete
-          Permission.update(Role.user(user.$id)),
-          Permission.delete(Role.user(user.$id)),
-        ]
+        }
+        // Permissions parameter removed
       );
       // Refresh list
       const reminderResponse = await databases.listDocuments(
@@ -142,7 +142,7 @@ const CaregiverDashboard = ({ user }) => {
       setShowAddReminder(false);
     } catch (err) {
       console.error('Failed to add reminder:', err);
-      setError(`Failed to add reminder: ${err.message}`); // Show detailed error
+      setError(`Failed to add reminder: ${err.message}`);
     }
   };
 

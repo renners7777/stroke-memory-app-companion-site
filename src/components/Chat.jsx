@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { databases, ID, Query, client, Permission, Role } from '../lib/appwrite';
+import { databases, ID, Query, client } from '../lib/appwrite';
 import PropTypes from 'prop-types';
 
 const Chat = ({ user, selectedUser }) => {
@@ -21,9 +21,10 @@ const Chat = ({ user, selectedUser }) => {
 
     const getMessages = async () => {
       try {
+        // This query now relies on collection-level read access.
         const response = await databases.listDocuments(
-          '68b213e7001400dc7f21', // Database ID
-          'messages_table',       // Correct Collection ID
+          '68b213e7001400dc7f21',
+          'messages_table',
           [
             Query.orderAsc('$createdAt'),
             Query.limit(100),
@@ -33,7 +34,7 @@ const Chat = ({ user, selectedUser }) => {
         setMessages(response.documents);
       } catch (err) {
         console.error('Failed to fetch messages:', err);
-        setError('Could not load messages.');
+        setError('Could not load messages. Please check collection permissions.');
       }
     };
 
@@ -53,7 +54,7 @@ const Chat = ({ user, selectedUser }) => {
     };
   }, [user.$id, selectedUser]);
 
-  // Corrected function to send a message with proper permissions
+  // Simplified message sending, relying on collection-level permissions.
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser) return;
@@ -61,21 +62,16 @@ const Chat = ({ user, selectedUser }) => {
 
     try {
       await databases.createDocument(
-        '68b213e7001400dc7f21',  // Database ID
-        'messages_table',        // Correct Collection ID
+        '68b213e7001400dc7f21',  
+        'messages_table',        
         ID.unique(),
         {
           sender_id: user.$id,
           receiver_id: selectedUser.$id,
           message: newMessage,
           participants: [user.$id, selectedUser.$id].sort()
-        },
-        [
-            Permission.read(Role.user(user.$id)),
-            Permission.update(Role.user(user.$id)), // Sender can update/delete
-            Permission.delete(Role.user(user.$id)),
-            Permission.read(Role.user(selectedUser.$id)), // Receiver can only read
-        ]
+        }
+        // Permissions parameter removed
       );
       setNewMessage('');
     } catch (err) {
@@ -85,7 +81,7 @@ const Chat = ({ user, selectedUser }) => {
   };
 
   if (!selectedUser) {
-    return null; // Don't render chat if no user is selected
+    return null; 
   }
 
   return (
