@@ -9,17 +9,16 @@ const CaregiverDashboard = ({ user }) => {
   const [reminders, setReminders] = useState([]);
   const [journalEntries, setJournalEntries] = useState([]);
   const [showAddReminder, setShowAddReminder] = useState(false);
-  const [newReminderText, setNewReminderText] = useState('');
+  const [newReminderTitle, setNewReminderTitle] = useState(''); // Renamed state for clarity
   const [newReminderDate, setNewReminderDate] = useState('');
   const [error, setError] = useState(null);
   const [shareableIdInput, setShareableIdInput] = useState('');
 
-  // Function to fetch patients linked to this caregiver
   const fetchPatients = async () => {
     try {
       const response = await databases.listDocuments(
-        '68b213e7001400dc7f21', // Database ID
-        'users',              // Collection ID
+        '68b213e7001400dc7f21',
+        'users',
         [Query.equal('caregiver_id', user.$id)]
       );
       setPatients(response.documents);
@@ -29,12 +28,10 @@ const CaregiverDashboard = ({ user }) => {
     }
   };
 
-  // Fetch patients on initial load
   useEffect(() => {
     fetchPatients();
   }, [user.$id]);
 
-  // Fetch data for the selected patient
   useEffect(() => {
     if (!selectedPatient) {
       setReminders([]);
@@ -45,10 +42,7 @@ const CaregiverDashboard = ({ user }) => {
     const fetchData = async () => {
       setError(null);
       try {
-        // A patient's data is identified by their own user ID.
         const commonQuery = [Query.equal('userID', selectedPatient.$id)];
-
-        // To read reminders, caregiver relies on collection-level permissions
         const reminderResponse = await databases.listDocuments(
           '68b213e7001400dc7f21',
           'reminders_table',
@@ -56,7 +50,6 @@ const CaregiverDashboard = ({ user }) => {
         );
         setReminders(reminderResponse.documents);
 
-        // To read journals, caregiver relies on collection-level permissions
         const journalResponse = await databases.listDocuments(
           '68b213e7001400dc7f21',
           'journal_table',
@@ -92,10 +85,6 @@ const CaregiverDashboard = ({ user }) => {
       }
 
       const patientToLink = patientResponse.documents[0];
-
-      // This action requires the caregiver to have write permission on the patient's user document.
-      // This is a significant permission to grant. 
-      // For this to work, the 'users' collection must allow 'users' to write.
       await databases.updateDocument(
         '68b213e7001400dc7f21',
         'users',
@@ -111,10 +100,10 @@ const CaregiverDashboard = ({ user }) => {
     }
   };
 
-  // Simplified reminder creation, relying on collection-level permissions.
+  // Corrected reminder creation to use 'title' attribute
   const handleAddReminder = async (e) => {
     e.preventDefault();
-    if (!newReminderText || !newReminderDate || !selectedPatient) return;
+    if (!newReminderTitle || !newReminderDate || !selectedPatient) return;
 
     setError(null);
     try {
@@ -123,21 +112,18 @@ const CaregiverDashboard = ({ user }) => {
         'reminders_table',
         ID.unique(),
         {
-          userID: selectedPatient.$id, // The patient this reminder is for
-          creatorID: user.$id, // The caregiver who created it
-          reminder_text: newReminderText,
+          userID: selectedPatient.$id,
+          creatorID: user.$id,
+          title: newReminderTitle, // Corrected attribute
           reminder_date: newReminderDate,
           completed: false,
         }
-        // Permissions parameter removed
       );
-      // Refresh list
       const reminderResponse = await databases.listDocuments(
         '68b213e7001400dc7f21', 'reminders_table', [Query.equal('userID', selectedPatient.$id)]
       );
       setReminders(reminderResponse.documents);
-      // Reset form
-      setNewReminderText('');
+      setNewReminderTitle('');
       setNewReminderDate('');
       setShowAddReminder(false);
     } catch (err) {
@@ -155,7 +141,6 @@ const CaregiverDashboard = ({ user }) => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 space-y-8">
-            {/* Patient List */}
             <div className="bg-white p-6 shadow-lg rounded-lg">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Your Patients</h2>
               <ul className="space-y-3">
@@ -173,7 +158,6 @@ const CaregiverDashboard = ({ user }) => {
               </ul>
             </div>
 
-            {/* Link Patient Form */}
             <div className="bg-white p-6 shadow-lg rounded-lg">
                 <h2 className="text-xl font-semibold text-slate-900 mb-4">Link to a New Patient</h2>
                 <form onSubmit={handleLinkPatient} className="space-y-4">
@@ -187,11 +171,9 @@ const CaregiverDashboard = ({ user }) => {
 
           </div>
 
-          {/* Patient Details */}
           <div className="lg:col-span-2">
             {selectedPatient ? (
               <div className="space-y-8">
-                {/* Reminders Section */}
                 <div>
                   <h2 className="text-xl font-semibold text-slate-900 mb-4">Reminders for {selectedPatient.name}</h2>
                   <div className="bg-white p-6 shadow-lg rounded-lg">
@@ -199,7 +181,7 @@ const CaregiverDashboard = ({ user }) => {
                       {reminders.length > 0 ? (
                         reminders.map(reminder => (
                           <li key={reminder.$id} className={`p-4 rounded-md ${reminder.completed ? 'bg-green-100' : 'bg-yellow-100'}`}>
-                            <p className="font-medium">{reminder.reminder_text}</p>
+                            <p className="font-medium">{reminder.title}</p> {/* Corrected attribute */}
                             <p className="text-sm text-slate-600">Due: {new Date(reminder.reminder_date).toLocaleString()}</p>
                             <p className={`text-sm font-semibold ${reminder.completed ? 'text-green-700' : 'text-yellow-700'}`}>
                               Status: {reminder.completed ? 'Completed' : 'Pending'}
@@ -217,8 +199,8 @@ const CaregiverDashboard = ({ user }) => {
                       <div className="mt-4">
                         <form onSubmit={handleAddReminder} className="space-y-4">
                           <div>
-                            <label htmlFor="reminderText" className="block text-sm font-medium text-slate-700">Reminder Details</label>
-                            <textarea id="reminderText" value={newReminderText} onChange={e => setNewReminderText(e.target.value)} rows="3" className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                            <label htmlFor="reminderTitle" className="block text-sm font-medium text-slate-700">Reminder Title</label>
+                            <textarea id="reminderTitle" value={newReminderTitle} onChange={e => setNewReminderTitle(e.target.value)} rows="3" className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
                           </div>
                           <div>
                             <label htmlFor="reminderDate" className="block text-sm font-medium text-slate-700">Date and Time</label>
@@ -231,7 +213,6 @@ const CaregiverDashboard = ({ user }) => {
                   </div>
                 </div>
 
-                {/* Journal Entries Section */}
                 <div>
                     <h2 className="text-xl font-semibold text-slate-900 mb-4">Journal Entries from {selectedPatient.name}</h2>
                      <div className="bg-white p-6 shadow-lg rounded-lg">
@@ -250,7 +231,6 @@ const CaregiverDashboard = ({ user }) => {
                     </div>
                 </div>
 
-                {/* Chat Section */}
                 <div>
                     <Chat user={user} selectedUser={selectedPatient} />
                 </div>

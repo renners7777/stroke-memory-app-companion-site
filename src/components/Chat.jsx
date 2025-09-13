@@ -21,7 +21,6 @@ const Chat = ({ user, selectedUser }) => {
 
     const getMessages = async () => {
       try {
-        // This query now relies on collection-level read access.
         const response = await databases.listDocuments(
           '68b213e7001400dc7f21',
           'messages_table',
@@ -54,7 +53,7 @@ const Chat = ({ user, selectedUser }) => {
     };
   }, [user.$id, selectedUser]);
 
-  // Simplified message sending, relying on collection-level permissions.
+  // Corrected attribute names to match Appwrite collection
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser) return;
@@ -66,12 +65,11 @@ const Chat = ({ user, selectedUser }) => {
         'messages_table',        
         ID.unique(),
         {
-          sender_id: user.$id,
-          receiver_id: selectedUser.$id,
+          senderID: user.$id, // Corrected from sender_id
+          receiverID: selectedUser.$id, // Corrected from receiver_id
           message: newMessage,
           participants: [user.$id, selectedUser.$id].sort()
         }
-        // Permissions parameter removed
       );
       setNewMessage('');
     } catch (err) {
@@ -89,8 +87,8 @@ const Chat = ({ user, selectedUser }) => {
       <h2 className="text-xl font-semibold text-slate-900 mb-4">Chat with {selectedUser.name}</h2>
       <div className="h-80 overflow-y-auto mb-4 p-4 bg-slate-50 rounded-md border">
         {messages.map(message => (
-          <div key={message.$id} className={`flex ${message.sender_id === user.$id ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-xs lg:max-w-md p-3 rounded-lg mb-2 ${message.sender_id === user.$id ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-800'}`}>
+          <div key={message.$id} className={`flex ${message.senderID === user.$id ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-xs lg:max-w-md p-3 rounded-lg mb-2 ${message.senderID === user.$id ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-800'}`}>
               <p>{message.message}</p>
             </div>
           </div>

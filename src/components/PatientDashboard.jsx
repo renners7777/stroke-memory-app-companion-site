@@ -59,7 +59,6 @@ const PatientDashboard = ({ user }) => {
     fetchPatientData();
   }, [user]);
 
-  // Simplified journal entry creation
   const handleAddJournalEntry = async (e) => {
     e.preventDefault();
     if (!newJournalEntry.trim()) {
@@ -75,15 +74,11 @@ const PatientDashboard = ({ user }) => {
         'journal_table',
         ID.unique(),
         {
-          userID: user.$id, // The patient creating the entry
+          userID: user.$id,
           entry_text: newJournalEntry,
-          // The linked caregiver's ID is stored on the user object,
-          // so we don't need to add it here. We can use it in queries.
         }
-        // Permissions parameter removed
       );
       setNewJournalEntry('');
-      // Refresh list after adding
       const journalResponse = await databases.listDocuments(
         '68b213e7001400dc7f21', 
         'journal_table', 
@@ -99,15 +94,12 @@ const PatientDashboard = ({ user }) => {
   const handleToggleReminder = async (reminderId, currentStatus) => {
     setError(null);
     try {
-      // This update relies on the user having document-level write access.
-      // The collection-level permission 'users' with 'update' should grant this.
       await databases.updateDocument(
         '68b213e7001400dc7f21', 
         'reminders_table', 
         reminderId, 
         { completed: !currentStatus }
       );
-      // Refresh list after updating
       const reminderResponse = await databases.listDocuments(
         '68b213e7001400dc7f21', 
         'reminders_table', 
@@ -139,7 +131,6 @@ const PatientDashboard = ({ user }) => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            {/* Reminders Section */}
             <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Reminders</h2>
                 <div className="bg-white p-6 shadow-lg rounded-lg">
@@ -148,7 +139,7 @@ const PatientDashboard = ({ user }) => {
                         reminders.map(reminder => (
                         <li key={reminder.$id} className="flex items-center justify-between p-4 rounded-md bg-yellow-100">
                             <div>
-                                <p className="font-medium">{reminder.reminder_text}</p>
+                                <p className="font-medium">{reminder.title}</p> {/* Corrected attribute */}
                                 <p className="text-sm text-gray-600">Due: {new Date(reminder.reminder_date).toLocaleString()}</p>
                             </div>
                             <button 
@@ -165,7 +156,6 @@ const PatientDashboard = ({ user }) => {
                 </div>
             </div>
 
-            {/* Journal Section */}
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Private Journal</h2>
               <div className="bg-white p-6 shadow-lg rounded-lg">
@@ -195,7 +185,6 @@ const PatientDashboard = ({ user }) => {
             </div>
           </div>
 
-          {/* Side Content: Messaging */}
           <div className="lg:col-span-1">
             <Messaging user={user} companion={companion} />
           </div>
