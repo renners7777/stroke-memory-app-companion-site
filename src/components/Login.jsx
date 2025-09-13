@@ -61,11 +61,9 @@ const Login = ({ setLoggedInUser }) => {
           role: role,
         },
         [
-          // *** THE DEFINITIVE FIX ***
-          // Allow ANY authenticated user to READ this document.
-          // This solves both the role check on login and the caregiver search.
-          Permission.read(Role.users()),
-          // BUT, only the user who owns it can UPDATE it.
+          // *** DIAGNOSTIC STEP ***
+          // Temporarily make read permissions as open as possible.
+          Permission.read(Role.any()),
           Permission.update(Role.user(userId)),
         ]
       );

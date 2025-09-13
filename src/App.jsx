@@ -33,9 +33,9 @@ const DashboardRenderer = ({ userRole, user, logout, reminders, setReminders, jo
         user={user}
         logout={logout}
         reminders={reminders}
-        setReminders={setReminders} // <-- FIX: Pass setter to PatientDashboard
+        setReminders={setReminders}
         journalEntries={journalEntries}
-        setJournalEntries={setJournalEntries} // <-- FIX: Pass setter to PatientDashboard
+        setJournalEntries={setJournalEntries}
       />
     );
   }
@@ -71,7 +71,6 @@ const App = () => {
     }
   };
 
-  // Check for an existing session when the app loads
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -86,7 +85,6 @@ const App = () => {
     checkSession();
   }, []);
 
-  // When a user logs in, determine their role and fetch initial data
   useEffect(() => {
     const fetchUserAndData = async () => {
       if (!loggedInUser) {
@@ -97,19 +95,25 @@ const App = () => {
       }
 
       try {
-        // 1. Fetch the user's own document to determine their role.
-        // This requires the document-level permission to be set correctly on creation.
-        const userDoc = await databases.getDocument('68b213e7001400dc7f21', 'users', loggedInUser.$id);
-        const role = userDoc.role;
+        const response = await databases.listDocuments(
+          '68b213e7001400dc7f21', // Database ID
+          'users', // Collection ID
+          [Query.equal('$id', loggedInUser.$id)]
+        );
 
+        if (response.documents.length === 0) {
+          throw new Error('User document not found for the logged in user.');
+        }
+
+        const userDoc = response.documents[0];
+        const role = userDoc.role;
+        
         if (!role) {
           throw new Error("Role not found in user document.");
         }
         
         setUserRole(role);
 
-        // 2. If the user is a patient, fetch their specific data.
-        // (Caregivers fetch data for their selected patient inside their own dashboard).
         if (role === 'patient') {
           const [remindersResponse, journalResponse] = await Promise.all([
               databases.listDocuments('68b213e7001400dc7f21', 'reminders_table', [Query.equal('userID', loggedInUser.$id)]),
@@ -120,13 +124,16 @@ const App = () => {
         }
 
       } catch (error) {
+        // *** DIAGNOSTIC STEP ***
+        // The most important step. Log the full error to the console.
+        console.error('--- DIAGNOSTIC ERROR ---');
         console.error('Failed to fetch user role or initial data:', error);
-        setUserRole(null); // Reset on error to prevent inconsistent states
+        setUserRole(null); // Reset on error
       }
     };
     
     fetchUserAndData();
-  }, [loggedInUser]); // Dependency is solely on the loggedInUser object
+  }, [loggedInUser]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
