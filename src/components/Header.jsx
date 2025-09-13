@@ -1,12 +1,16 @@
 import PropTypes from 'prop-types';
 import { account } from '../lib/appwrite';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Header = ({ loggedInUser, setLoggedInUser }) => {
+  const navigate = useNavigate();
+
   const handleLogout = async () => {
     try {
       await account.deleteSession('current');
       setLoggedInUser(null);
+      // Explicitly navigate to the login page after logout
+      navigate('/login');
     } catch (error) {
       console.error('Failed to logout:', error);
     }
@@ -21,13 +25,19 @@ const Header = ({ loggedInUser, setLoggedInUser }) => {
             <h1 className="text-xl font-bold text-indigo-600">Stroke Recovery Hub</h1>
           </Link>
           <div>
-            {loggedInUser && (
+            {loggedInUser ? (
               <button
                 onClick={handleLogout}
                 className="bg-indigo-600 text-white rounded-md px-5 py-2 text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
               >
                 Sign Out
               </button>
+            ) : (
+              <Link to="/login">
+                <button className="bg-indigo-600 text-white rounded-md px-5 py-2 text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                  Sign In
+                </button>
+              </Link>
             )}
           </div>
         </div>
