@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { databases, ID, Query } from '../lib/appwrite';
+import { databases, ID, Permission, Role, Query } from '../lib/appwrite';
 import Chat from './Chat';
 
 const CaregiverDashboard = ({ user, logout }) => {
@@ -41,8 +41,11 @@ const CaregiverDashboard = ({ user, logout }) => {
           }
         }
       } catch (err) {
-        console.error('Failed to fetch associated users:', err);
-        setError('Could not load your patient list.');
+        // If the collection doesn't exist, it's not a critical error on load.
+        if (err.code !== 404) {
+          console.error('Failed to fetch associated users:', err);
+          setError('Could not load your patient list.');
+        }
       } finally {
         setLoading(false);
       }
@@ -102,16 +105,20 @@ const CaregiverDashboard = ({ user, logout }) => {
         return;
       }
 
-      // DIAGNOSTIC TEST: Attempting to create a document in a known-good collection.
       await databases.createDocument(
         '68b213e7001400dc7f21',
-        'reminders_table', // <<< TEMPORARY CHANGE FOR TEST
+        'user_relationships',
         ID.unique(),
         {
-          userID: userToAdd.$id,
-          title: `Connection Test - ${userToAdd.name}`,
-          time: new Date().toISOString(),
-        }
+          companion_id: user.$id,
+          patient_id: userToAdd.$id
+        },
+        [
+          Permission.read(Role.user(user.$id)),
+          Permission.write(Role.user(user.$id)),
+          Permission.read(Role.user(userToAdd.$id)),
+          Permission.write(Role.user(userToAdd.$id))
+        ]
       );
       
       setSuccess(`Successfully connected with ${userToAdd.name}.`);
@@ -141,7 +148,13 @@ const CaregiverDashboard = ({ user, logout }) => {
           userID: selectedUser.$id,
           title: newReminderTitle,
           time: newReminderDate,
-        }
+        },
+        [
+          Permission.read(Role.user(selectedUser.$id)),
+          Permission.read(Role.user(user.$id)),
+          Permission.write(Role.user(selectedUser.$id)),
+          Permission.write(Role.user(user.$id)),
+        ]
       );
       setReminders(prev => [...prev, newReminder]);
       setNewReminderTitle('');
