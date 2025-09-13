@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { account, ID, databases, Permission, Role } from '../lib/appwrite';
+import { account, ID, databases } from '../lib/appwrite';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
@@ -48,7 +48,7 @@ const Login = ({ setLoggedInUser }) => {
     }
   }
 
-  // Updated register function to be more secure and robust
+  // Final, corrected register function
   async function register(email, password, name, role) {
     try {
       setError('');
@@ -60,7 +60,9 @@ const Login = ({ setLoggedInUser }) => {
       // 1. Create the authentication account. This also logs the user in.
       const newUser = await account.create(ID.unique(), email, password, name);
 
-      // 2. Create the user document in the database with explicit permissions.
+      // 2. Create the user document in the database.
+      // The permissions parameter has been removed, as it was causing the error.
+      // The document will inherit the permissions from the 'users' collection.
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
       const newUserDocument = await databases.createDocument(
         '68b213e7001400dc7f21', // Database ID
@@ -71,13 +73,7 @@ const Login = ({ setLoggedInUser }) => {
           email: email,
           shareable_id: shareableId,
           role: role,
-        },
-        // Explicitly grant read/write access to the user who is creating the document
-        [
-          Permission.read(Role.user(newUser.$id)),
-          Permission.update(Role.user(newUser.$id)),
-          Permission.delete(Role.user(newUser.$id)),
-        ]
+        }
       );
       
       // 3. The user is already logged in. Set the user state and navigate.
@@ -86,19 +82,8 @@ const Login = ({ setLoggedInUser }) => {
 
     } catch (e) {
       console.error('Registration error:', e);
-      // If registration fails, clean up the created auth user
-      if (e.code !== 409) { // 409 is a conflict/user already exists error
-        try {
-            // This part is tricky as we don't have the user ID if create() failed.
-            // Best effort is to inform the user.
-             setError('Registration failed. An error occurred creating your profile. Please try again.');
-        } catch(cleanupError) {
-            console.error("Failed to cleanup partially created user", cleanupError)
-        }
-      } else {
-          setError(e.message || 'Registration failed.');
-      }
-      
+      const defaultMessage = 'An unexpected error occurred. Please check the backend permissions and try again.';
+      setError(`Registration Failed: ${e.message || defaultMessage}`);
     }
   }
 
