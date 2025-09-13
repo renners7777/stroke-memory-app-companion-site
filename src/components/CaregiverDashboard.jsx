@@ -105,7 +105,6 @@ const CaregiverDashboard = ({ user, logout }) => {
         return;
       }
 
-      // This is now correct - relies on Collection-Level permissions
       await databases.createDocument(
         '68b213e7001400dc7f21',
         'user_relationships',
@@ -143,13 +142,7 @@ const CaregiverDashboard = ({ user, logout }) => {
           userID: selectedUser.$id,
           title: newReminderTitle,
           time: newReminderDate,
-        },
-        [
-          Permission.read(Role.user(selectedUser.$id)),
-          Permission.read(Role.user(user.$id)),
-          Permission.write(Role.user(selectedUser.$id)),
-          Permission.write(Role.user(user.$id)),
-        ]
+        }
       );
       setReminders(prev => [...prev, newReminder]);
       setNewReminderTitle('');

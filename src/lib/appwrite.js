@@ -6,4 +6,6 @@ const client = new Client()
 
 export const account = new Account(client);
 export const databases = new Databases(client);
+
+// EXPORTING THE CLIENT IS THE FIX for the J.subscribe error and blank screen
 export { client, ID, Query, Permission, Role };
