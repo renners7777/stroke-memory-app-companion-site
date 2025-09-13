@@ -13,12 +13,13 @@ const PatientDashboard = ({ user }) => {
   // Fetch companion info
   useEffect(() => {
     const fetchCompanion = async () => {
-      if (user.prefs.caregiver_id) {
+      // The patient document should have a caregiver_id field.
+      if (user.caregiver_id) {
           try {
               const response = await databases.getDocument(
                   '68b213e7001400dc7f21', // Database ID
-                  'users',                // Correct Collection ID
-                  user.prefs.caregiver_id
+                  'users',                // Collection ID
+                  user.caregiver_id      // Get ID from the user object
               );
               setCompanion(response);
           } catch(err) {
@@ -28,7 +29,7 @@ const PatientDashboard = ({ user }) => {
       }
     };
     fetchCompanion();
-  }, [user.prefs.caregiver_id]);
+  }, [user.caregiver_id]);
 
   // Fetch reminders and journal entries
   useEffect(() => {
@@ -76,7 +77,7 @@ const PatientDashboard = ({ user }) => {
         },
         [
             Permission.read(Role.user(user.$id)),
-            Permission.read(Role.user(user.prefs.caregiver_id)), // Allow caregiver to read
+            Permission.read(Role.user(user.caregiver_id)), // Correctly use caregiver_id
             Permission.update(Role.user(user.$id)),
             Permission.delete(Role.user(user.$id)),
         ]
