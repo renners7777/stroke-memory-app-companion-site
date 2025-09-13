@@ -1,79 +1,93 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { account, databases, Query, ID, Permission, Role } from '../lib/appwrite';
-import Messaging from './Messaging';
+import { databases, ID, Permission, Role, Query } from '../lib/appwrite';
+import Chat from './Chat';
 
-// A smaller, reusable card for displaying stats
-const StatCard = ({ title, value, icon }) => (
-  <div className="bg-white p-4 rounded-lg shadow-md flex items-center">
-    <div className="bg-blue-100 p-3 rounded-full mr-4">{icon}</div>
-    <div>
-      <p className="text-sm text-gray-500">{title}</p>
-      <p className="text-xl font-bold text-gray-800">{value}</p>
-    </div>
-  </div>
-);
-
-StatCard.propTypes = {
-  title: PropTypes.string.isRequired,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  icon: PropTypes.node.isRequired,
-};
-
-const CaregiverDashboard = ({ user, logout, userProgress, reminders, setReminders, journalEntries }) => {
+const CaregiverDashboard = ({ user, logout }) => {
   const [associatedUsers, setAssociatedUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newUserShareableId, setNewUserShareableId] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  const [reminders, setReminders] = useState([]);
+  const [journalEntries, setJournalEntries] = useState([]);
+  
   const [newReminderTitle, setNewReminderTitle] = useState('');
   const [newReminderDate, setNewReminderDate] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  // --- Data Fetching ---
+  // Fetch initial list of connected patients
   useEffect(() => {
-    // Fetch users associated with the current user (caregiver)
     const fetchAssociatedUsers = async () => {
       try {
-        const response = await databases.listDocuments(
-          '68b213e7001400dc7f21',
+        setLoading(true);
+        const relationships = await databases.listDocuments(
+          '68b213e7001400dc7f21', 
           'user_relationships',
           [Query.equal('companion_id', user.$id)]
         );
 
-        const patientIds = response.documents.map((doc) => doc.patient_id);
-        if (patientIds.length > 0) {
-          const userPromises = patientIds.map(id => databases.getDocument('68b213e7001400dc7f21', 'users', id));
-          const users = await Promise.all(userPromises);
-          setAssociatedUsers(users);
-          // Automatically select the first user if none is selected
-          if (users.length > 0 && !selectedUser) {
-            setSelectedUser(users[0]);
+        if (relationships.documents.length > 0) {
+          const patientIds = relationships.documents.map(rel => rel.patient_id);
+          const patientDocs = await databases.listDocuments(
+            '68b213e7001400dc7f21',
+            'users',
+            [Query.equal('$id', patientIds)]
+          );
+          setAssociatedUsers(patientDocs.documents);
+          if (patientDocs.documents.length > 0) {
+            setSelectedUser(patientDocs.documents[0]);
           }
         }
       } catch (err) {
-        console.error('Error fetching associated users:', err);
+        console.error('Failed to fetch associated users:', err);
+        setError('Could not load your patient list.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAssociatedUsers();
+  }, [user.$id]);
+
+  // When the selected patient changes, fetch their data
+  useEffect(() => {
+    const fetchDataForSelectedUser = async () => {
+      if (!selectedUser) {
+        setReminders([]);
+        setJournalEntries([]);
+        return;
+      }
+
+      try {
+        const [remindersList, journalsList] = await Promise.all([
+          databases.listDocuments('68b213e7001400dc7f21', 'reminders_table', [Query.equal('userID', selectedUser.$id)]),
+          databases.listDocuments('68b213e7001400dc7f21', 'journal_table', [Query.equal('userID', selectedUser.$id)])
+        ]);
+        setReminders(remindersList.documents);
+        setJournalEntries(journalsList.documents);
+      } catch (err) {
+        console.error(`Failed to fetch data for ${selectedUser.name}:`, err);
+        setError(`Could not load data for ${selectedUser.name}.`);
       }
     };
 
-    fetchAssociatedUsers();
-  }, [user.$id, selectedUser]); // Reruns when user changes
+    fetchDataForSelectedUser();
+  }, [selectedUser]);
 
-  // --- Event Handlers ---
-  const handleAddUser = async (e) => {
-    e.preventDefault();
+  const handleAddUser = async () => {
     setError('');
     setSuccess('');
-
-    if (!newUserShareableId.trim()) {
-      setError('Please enter a shareable ID.');
-      return;
-    }
+    if (!newUserShareableId) return;
 
     try {
       const userList = await databases.listDocuments(
         '68b213e7001400dc7f21',
         'users',
-        [Query.equal('shareable_id', newUserShareableId)]
+        [
+          Query.equal('shareable_id', newUserShareableId),
+          Query.equal('role', 'patient') // <-- More robust query!
+        ]
       );
 
       if (userList.documents.length === 0) {
@@ -83,13 +97,12 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, setReminder
 
       const userToAdd = userList.documents[0];
 
-      // Prevent adding the same user twice
       if (associatedUsers.some(u => u.$id === userToAdd.$id)) {
         setError(`${userToAdd.name} is already in your list.`);
         return;
       }
 
-      await databases.createDocument(
+      const relationshipDoc = await databases.createDocument(
         '68b213e7001400dc7f21',
         'user_relationships',
         ID.unique(),
@@ -97,14 +110,24 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, setReminder
           companion_id: user.$id,
           patient_id: userToAdd.$id
         },
-        // Permissions ensure only the companion can see this relationship
-        [Permission.read(Role.user(user.$id))]
+        [
+          Permission.read(Role.user(user.$id)),
+          Permission.read(Role.user(userToAdd.$id)),
+          Permission.write(Role.user(user.$id)),
+        ]
       );
+      
+      // Add relationship_id to user documents for chat retrieval
+      await Promise.all([
+        databases.updateDocument('68b213e7001400dc7f21', 'users', user.$id, { relationship_id: relationshipDoc.$id }),
+        databases.updateDocument('68b213e7001400dc7f21', 'users', userToAdd.$id, { relationship_id: relationshipDoc.$id })
+      ]);
 
       setSuccess(`Successfully connected with ${userToAdd.name}.`);
       setNewUserShareableId('');
-      setAssociatedUsers(prev => [...prev, userToAdd]); // Optimistically update UI
-      setSelectedUser(userToAdd); // Switch to the newly added user
+      const newAssociatedUsers = [...associatedUsers, userToAdd];
+      setAssociatedUsers(newAssociatedUsers);
+      setSelectedUser(userToAdd);
 
     } catch (err) {
       console.error('Error adding user:', err);
@@ -118,189 +141,164 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, setReminder
       alert('Please fill in all fields and select a user.');
       return;
     }
-
     try {
       const newReminder = await databases.createDocument(
-        '68b213e7001400dc7f21', // Database ID
-        'reminders_table',    // Reminders collection ID
+        '68b213e7001400dc7f21',
+        'reminders_table',
         ID.unique(),
         {
+          userID: selectedUser.$id,
           title: newReminderTitle,
-          dateTime: newReminderDate,
-          userID: selectedUser.$id, // Associate reminder with the selected patient
+          time: newReminderDate,
         },
         [
-          Permission.read(Role.user(selectedUser.$id)), // Patient can read
-          Permission.read(Role.user(user.$id)),       // Caregiver can read
-          Permission.update(Role.user(user.$id)),      // Caregiver can update
-          Permission.delete(Role.user(user.$id)),      // Caregiver can delete
+          Permission.read(Role.user(selectedUser.$id)),
+          Permission.read(Role.user(user.$id)),
+          Permission.write(Role.user(selectedUser.$id)),
+          Permission.write(Role.user(user.$id)),
         ]
       );
-
-      setReminders(prev => [...prev, newReminder]); // Optimistically update UI
+      setReminders(prev => [...prev, newReminder]);
       setNewReminderTitle('');
       setNewReminderDate('');
     } catch (error) {
-      console.error('Error creating reminder:', error);
-      alert('Failed to create reminder.');
+      console.error('Failed to add reminder:', error);
+      alert('Failed to add reminder. Please try again.');
     }
   };
 
-  const latestProgress = userProgress?.[0];
+  const toggleReminder = async (reminderId, isCompleted) => {
+    try {
+      const updatedReminder = await databases.updateDocument(
+        '68b213e7001400dc7f21',
+        'reminders_table',
+        reminderId,
+        { is_completed: !isCompleted }
+      );
+      setReminders(prev => prev.map(r => r.$id === reminderId ? updatedReminder : r));
+    } catch (error) {
+      console.error('Failed to update reminder:', error);
+      alert('Failed to update reminder status.');
+    }
+  };
 
-  // --- Render ---
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading patient data...</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100 font-sans">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
+      <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-            </svg>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Welcome, {user.name}</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Companion Dashboard</h1>
+          <div className="flex items-center">
+            <span className="mr-4 text-slate-600">Welcome, {user.name}</span>
+            <button onClick={logout} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">Logout</button>
           </div>
-          <button
-            onClick={logout}
-            className="bg-red-500 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all"
-          >
-            Logout
-          </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Left Column: User Management & Communication */}
-          <div className="lg:col-span-1 space-y-8">
-            
-            {/* User Connection Section */}
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Connect with a Patient</h2>
-              <p className="text-sm text-gray-600 mb-2">Enter the patient's Shareable ID below to connect your accounts and view their progress.</p>
-              
-              <form onSubmit={handleAddUser} className="flex items-start space-x-2">
-                <div className="flex-grow">
-                  <input
-                    type="text"
-                    placeholder="Patient's Shareable ID"
-                    value={newUserShareableId}
-                    onChange={(e) => setNewUserShareableId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm font-medium"
-                >
-                  Add
+
+          {/* Left Column: Patient List and Add Form */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white p-6 shadow-lg rounded-lg">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Manage Patients</h2>
+              <div className="space-y-2 mb-4">
+                {associatedUsers.length > 0 ? (
+                  associatedUsers.map(u => (
+                    <div key={u.$id} onClick={() => setSelectedUser(u)} className={`p-3 rounded-md cursor-pointer ${selectedUser?.$id === u.$id ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 hover:bg-slate-200'}`}>
+                      {u.name}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500">You are not connected with any patients yet.</p>
+                )}
+              </div>
+              <div className="space-y-3">
+                <input 
+                  type="text" 
+                  value={newUserShareableId}
+                  onChange={(e) => setNewUserShareableId(e.target.value)}
+                  placeholder="Enter patient\'s Shareable ID" 
+                  className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+                <button onClick={handleAddUser} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                  Connect to Patient
                 </button>
-              </form>
-              {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
-              {success && <p className="text-green-500 text-xs mt-2">{success}</p>}
+                {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+                {success && <p className="text-sm text-green-600 mt-2">{success}</p>}
+              </div>
             </div>
 
-            {/* User Selection & Messaging */}
-            {associatedUsers.length > 0 && (
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">Chat with {selectedUser?.name || 'a Patient'}</h2>
-                <select
-                  onChange={(e) => {
-                    const userToSelect = associatedUsers.find(u => u.$id === e.target.value);
-                    setSelectedUser(userToSelect);
-                  }}
-                  value={selectedUser?.$id || ''}
-                  className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                >
-                  {associatedUsers.map(u => (
-                    <option key={u.$id} value={u.$id}>{u.name}</option>
-                  ))}
-                </select>
-
-                {selectedUser && <div className="mt-4"><Messaging loggedInUser={user} selectedUser={selectedUser} /></div>}
+            {selectedUser && (
+              <div className="bg-white p-6 shadow-lg rounded-lg">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Add Reminder for {selectedUser.name}</h3>
+                <form onSubmit={handleAddReminder} className="space-y-4">
+                  <div>
+                    <label htmlFor="reminderTitle" className="block text-sm font-medium text-slate-700">Reminder Title</label>
+                    <input type="text" id="reminderTitle" value={newReminderTitle} onChange={e => setNewReminderTitle(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                  </div>
+                  <div>
+                    <label htmlFor="reminderDate" className="block text-sm font-medium text-slate-700">Time</label>
+                    <input type="datetime-local" id="reminderDate" value={newReminderDate} onChange={e => setNewReminderDate(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                  </div>
+                  <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Add Reminder</button>
+                </form>
               </div>
             )}
           </div>
 
-          {/* Right Column: Patient Data */}
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              <StatCard 
-                title="Memory Score" 
-                value={latestProgress ? `${latestProgress.memoryScore}%` : 'N/A'}
-                icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>}
-              />
-              <StatCard 
-                title="Cognition Score" 
-                value={latestProgress ? `${latestProgress.cognitionScore}%` : 'N/A'}
-                icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m12.728 0l.707-.707M12 21v-1m-6.364-1.636l.707-.707m12.728 0l-.707.707" /></svg>}
-              />
-              <StatCard 
-                title="Reminders" 
-                value={reminders.length}
-                icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>}
-              />
-            </div>
-
-            {/* Data Sections */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-              <section className="xl:col-span-2 bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">Recent Journal Entries</h2>
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {journalEntries.length > 0 ? journalEntries.map(entry => (
-                    <div key={entry.$id} className="border p-4 rounded-lg hover:shadow-lg transition-shadow">
-                      <div className="flex justify-between items-start mb-1">
-                        <h3 className="font-semibold text-gray-800">{entry.title}</h3>
-                        <span className="text-xs text-gray-500">{new Date(entry.dateCreated).toLocaleDateString()}</span>
-                      </div>
-                      <p className="text-sm text-gray-600">{entry.content}</p>
+          {/* Right Column: Selected Patient Data */}
+          <div className="lg:col-span-2 space-y-6">
+            {selectedUser ? (
+              <>
+                <div className="bg-white p-6 shadow-lg rounded-lg">
+                  <h2 className="text-xl font-semibold text-slate-900 mb-4">Viewing Dashboard for: {selectedUser.name}</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    {/* Reminders Section */}
+                    <div>
+                      <h3 className="font-medium text-slate-800 mb-3">Medication Reminders</h3>
+                      <ul className="space-y-2">
+                        {reminders.map(r => (
+                          <li key={r.$id} onClick={() => toggleReminder(r.$id, r.is_completed)} className={`p-3 rounded-md cursor-pointer flex justify-between items-center ${r.is_completed ? 'bg-green-100 text-slate-500 line-through' : 'bg-yellow-100'}`}>
+                            <span>{r.title}</span>
+                            <span className="text-sm">{new Date(r.time).toLocaleString()}</span>
+                          </li>
+                        ))}
+                        {reminders.length === 0 && <p className="text-sm text-slate-500">No reminders set.</p>}
+                      </ul>
                     </div>
-                  )) : (
-                    <p className="text-gray-500 text-center py-4">No journal entries from the selected patient yet.</p>
-                  )}
-                </div>
-              </section>
 
-              <section className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">Upcoming Reminders for {selectedUser?.name}</h2>
-                <div className="space-y-3 max-h-80 overflow-y-auto">
-                  {reminders.length > 0 ? reminders.map(reminder => (
-                    <div key={reminder.$id} className="border-l-4 border-blue-500 pl-3">
-                      <p className="font-semibold text-gray-800 text-sm">{reminder.title}</p>
-                      <p className="text-xs text-gray-600">{new Date(reminder.dateTime).toLocaleString()}</p>
+                    {/* Journal Section */}
+                    <div>
+                      <h3 className="font-medium text-slate-800 mb-3">Journal Entries</h3>
+                      <ul className="space-y-4">
+                        {journalEntries.map(j => (
+                          <li key={j.$id} className="p-3 bg-slate-50 rounded-md border border-slate-200">
+                            <p className="text-sm text-slate-700">{j.content}</p>
+                            <p className="text-xs text-slate-400 mt-2">{new Date(j.$createdAt).toLocaleString()}</p>
+                          </li>
+                        ))}
+                        {journalEntries.length === 0 && <p className="text-sm text-slate-500">No journal entries yet.</p>}
+                      </ul>
                     </div>
-                  )) : (
-                    <p className="text-gray-500 text-center py-4">No upcoming reminders.</p>
-                  )}
+
+                  </div>
                 </div>
-                {selectedUser && (
-                  <form onSubmit={handleAddReminder} className="mt-4 pt-4 border-t space-y-2">
-                    <input 
-                      type="text"
-                      placeholder="New reminder title"
-                      value={newReminderTitle}
-                      onChange={(e) => setNewReminderTitle(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
-                    <input 
-                      type="datetime-local"
-                      value={newReminderDate}
-                      onChange={(e) => setNewReminderDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
-                    <button
-                      type="submit"
-                      className="w-full bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm font-medium"
-                    >
-                      Add Reminder
-                    </button>
-                  </form>
-                )}
-              </section>
-            </div>
+                {/* Chat Component */}
+                <Chat user={user} selectedUser={selectedUser} />
+              </>
+            ) : (
+              <div className="bg-white p-10 shadow-lg rounded-lg text-center">
+                <h2 className="text-xl font-semibold text-slate-800">Select a Patient</h2>
+                <p className="mt-2 text-slate-500">Choose a patient from your list on the left to view their dashboard, or add a new patient using their shareable ID.</p>
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -311,10 +309,6 @@ const CaregiverDashboard = ({ user, logout, userProgress, reminders, setReminder
 CaregiverDashboard.propTypes = {
   user: PropTypes.object.isRequired,
   logout: PropTypes.func.isRequired,
-  userProgress: PropTypes.array,
-  reminders: PropTypes.array.isRequired,
-  setReminders: PropTypes.func.isRequired,
-  journalEntries: PropTypes.array.isRequired
 };
 
 export default CaregiverDashboard;
