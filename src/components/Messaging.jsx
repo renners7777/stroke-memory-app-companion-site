@@ -27,7 +27,7 @@ const Messaging = ({ user, companion }) => {
           [
             Query.orderAsc('$createdAt'),
             Query.limit(100),
-            Query.equal('participants', [user.$id, companion.$id])
+            Query.equal('participants', [user.$id, companion.$id].sort())
           ]
         );
         setMessages(response.documents);

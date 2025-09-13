@@ -27,7 +27,7 @@ const Chat = ({ user, selectedUser }) => {
           [
             Query.orderAsc('$createdAt'),
             Query.limit(100),
-            Query.equal('participants', [user.$id, selectedUser.$id])
+            Query.equal('participants', [user.$id, selectedUser.$id].sort())
           ]
         );
         setMessages(response.documents);
