@@ -19,32 +19,50 @@ const Login = ({ setLoggedInUser }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Updated login function with robust error handling
   async function login(email, password) {
     try {
       setError('');
       await account.createEmailPasswordSession(email, password);
       const user = await account.get();
-      const fullUserProfile = await databases.getDocument(
-        '68b213e7001400dc7f21',
-        'users',
-        user.$id
-      );
-      setLoggedInUser(fullUserProfile);
-      navigate('/dashboard');
+
+      try {
+        const fullUserProfile = await databases.getDocument(
+          '68b213e7001400dc7f21',
+          'users',
+          user.$id
+        );
+        setLoggedInUser(fullUserProfile);
+        navigate('/dashboard');
+      } catch (docError) {
+        // This is the critical error handling block
+        if (docError.code === 404) { // 404 means 'Not Found'
+          setError('Your user profile is missing. Please register again.');
+          await account.deleteSession('current'); // Log the user out
+          setLoggedInUser(null);
+        } else {
+          throw docError; // Re-throw other errors
+        }
+      }
     } catch (e) {
       console.error('Login failed:', e);
       setError(e.message || 'Login failed. Please check your credentials.');
     }
   }
 
+  // Updated register function to remove redundant session creation
   async function register(email, password, name, role) {
     try {
       setError('');
       if (!email || !password || !name || !role) {
-        setError('All fields, including role, are required for registration.');
+        setError('All fields are required for registration.');
         return;
       }
+
+      // 1. Create the authentication account. This also logs the user in.
       const newUser = await account.create(ID.unique(), email, password, name);
+
+      // 2. Create the user document in the database.
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
       const newUserDocument = await databases.createDocument(
         '68b213e7001400dc7f21',
@@ -57,9 +75,12 @@ const Login = ({ setLoggedInUser }) => {
           role: role,
         }
       );
-      await account.createEmailPasswordSession(email, password);
+      
+      // 3. The user is already logged in. Set the user state and navigate.
+      // No need for createEmailPasswordSession here.
       setLoggedInUser(newUserDocument);
       navigate('/dashboard');
+
     } catch (e) {
       console.error('Registration error:', e);
       setError(e.message || 'Registration failed.');
@@ -80,7 +101,6 @@ const Login = ({ setLoggedInUser }) => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
-        {/* The redundant header has been removed from here. */}
         <div className="bg-white p-8 shadow-xl rounded-lg">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-slate-800">
