@@ -1,6 +1,6 @@
-
 import PropTypes from 'prop-types';
 import { account } from '../lib/appwrite';
+import { Link } from 'react-router-dom';
 
 const Header = ({ loggedInUser, setLoggedInUser }) => {
   const handleLogout = async () => {
@@ -16,9 +16,10 @@ const Header = ({ loggedInUser, setLoggedInUser }) => {
     <header className="bg-white shadow-md">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex-shrink-0">
-            <h1 className="text-xl font-bold text-indigo-600">StrokeSaver</h1>
-          </div>
+          <Link to="/" className="flex items-center gap-3 cursor-pointer">
+            <img src="/logo.svg" alt="Stroke Recovery Hub Logo" className="h-8 w-auto" />
+            <h1 className="text-xl font-bold text-indigo-600">Stroke Recovery Hub</h1>
+          </Link>
           <div>
             {loggedInUser && (
               <button
