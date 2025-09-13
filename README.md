@@ -47,9 +47,9 @@ Before running the frontend, you must configure the Appwrite backend.
         - `shareable_id`: String, Size: 10, **Required**
         - `role`: String, Size: 20, **Required**
     - **Indexes:**
-        - `shareable_id_index`: Type: `key`, Attributes: `shareable_id` (ASC)
+        - `shareable_id_and_role_index`: Type: `key`, Attributes: `shareable_id` (ASC), `role` (ASC)
     - **Settings (Permissions):**
-        - Add Role: `Users`, with **Read** access.
+        - Add Role: `Users`, with **Create** and **Read** access.
     </details>
 
     <details>
