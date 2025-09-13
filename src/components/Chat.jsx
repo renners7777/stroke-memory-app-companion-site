@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { databases, ID, Query, client } from '../lib/appwrite';
+import { databases, ID, Query, client, Permission, Role } from '../lib/appwrite';
 import PropTypes from 'prop-types';
 
 const Chat = ({ user, selectedUser }) => {
@@ -69,7 +69,11 @@ const Chat = ({ user, selectedUser }) => {
           receiver_id: selectedUser.$id,
           message: newMessage,
           participants: [user.$id, selectedUser.$id].sort() // Sort to ensure consistency
-        }
+        },
+        [
+            Permission.read(Role.user(user.$id)),
+            Permission.read(Role.user(selectedUser.$id)),
+        ]
       );
       setNewMessage('');
     } catch (err) {

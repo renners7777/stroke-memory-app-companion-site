@@ -41,7 +41,6 @@ const CaregiverDashboard = ({ user, logout }) => {
           }
         }
       } catch (err) {
-        // If the collection doesn't exist, it's not a critical error on load.
         if (err.code !== 404) {
           console.error('Failed to fetch associated users:', err);
           setError('Could not load your patient list.');
@@ -142,14 +141,20 @@ const CaregiverDashboard = ({ user, logout }) => {
           userID: selectedUser.$id,
           title: newReminderTitle,
           time: newReminderDate,
-        }
+        },
+        [
+            Permission.read(Role.user(user.$id)),
+            Permission.write(Role.user(user.$id)),
+            Permission.read(Role.user(selectedUser.$id)),
+            Permission.write(Role.user(selectedUser.$id)),
+        ]
       );
       setReminders(prev => [...prev, newReminder]);
       setNewReminderTitle('');
       setNewReminderDate('');
     } catch (error) {
       console.error('Failed to add reminder:', error);
-      alert('Failed to add reminder. Please try again.');
+      alert('Failed to add reminder. Please check your collection-level permissions.');
     }
   };
 

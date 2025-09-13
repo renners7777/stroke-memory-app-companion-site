@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { databases, ID, Query } from '../lib/appwrite';
+import { databases, ID, Query, Permission, Role } from '../lib/appwrite';
 import Messaging from './Messaging';
 
 // PatientDashboard component
@@ -95,6 +95,15 @@ const PatientDashboard = ({ user, logout }) => {
     e.preventDefault();
     if (!newJournalEntry.trim()) return;
 
+    const permissions = [
+        Permission.read(Role.user(user.$id)),
+        Permission.write(Role.user(user.$id)),
+    ];
+
+    if (companion) {
+        permissions.push(Permission.read(Role.user(companion.$id)));
+    }
+
     try {
       const newEntry = await databases.createDocument(
         '68b213e7001400dc7f21',
@@ -103,13 +112,14 @@ const PatientDashboard = ({ user, logout }) => {
         {
           userID: user.$id,
           content: newJournalEntry,
-        }
+        },
+        permissions
       );
       setJournalEntries(prev => [newEntry, ...prev]);
       setNewJournalEntry('');
     } catch (error) {
       console.error('Failed to add journal entry:', error);
-      alert('Failed to add journal entry. Please try again.');
+      alert('Failed to add journal entry. Check collection-level permissions.');
     }
   };
 
