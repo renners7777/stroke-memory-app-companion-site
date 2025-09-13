@@ -51,7 +51,7 @@ const Chat = ({ user, selectedUser }) => {
         try {
             const response = await databases.listDocuments(
                 '68b213e7001400dc7f21',
-                'messages_table', // CORRECTED
+                'messages_table',
                 [Query.equal('relationship_id', relationshipId)]
             );
             setMessages(response.documents);
@@ -70,7 +70,7 @@ const Chat = ({ user, selectedUser }) => {
     try {
       const messageDoc = await databases.createDocument(
         '68b213e7001400dc7f21', // databaseId
-        'messages_table',      // CORRECTED
+        'messages_table',      // collectionId
         ID.unique(),
         {
           relationship_id: relationshipId,
@@ -80,6 +80,8 @@ const Chat = ({ user, selectedUser }) => {
         [
             Permission.read(Role.user(user.$id)),
             Permission.read(Role.user(selectedUser.$id)),
+            Permission.write(Role.user(user.$id)),
+            Permission.write(Role.user(selectedUser.$id))
         ]
       );
       setMessages(prev => [...prev, messageDoc]);
