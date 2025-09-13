@@ -1,49 +1,130 @@
-# Stroke Recovery & Connection Hub
+# Stroke Recovery Hub
 
-This project is a web-based companion platform for the Stroke Memory App, designed to bridge the communication gap between stroke survivors (patients) and their caregivers or family (companions). Built with React and powered by a robust Appwrite backend, this application provides a centralized hub for support, monitoring, and real-time communication.
+The Stroke Recovery Hub is a web application designed to support stroke survivors and their caregivers on the path to recovery. It provides tools for medication reminders, a daily journal for tracking progress, and a secure messaging system to facilitate communication and support between a patient and their designated companion.
 
----
+## Features
 
-## 💡 The Inspiration
+- **Role-Based Accounts:** Users can register as either a "Patient" or a "Companion/Caregiver," each with a tailored dashboard experience.
+- **Secure Patient-Companion Connection:** Companions can connect to a patient's profile using a unique, shareable ID.
+- **Medication Reminders:** Patients and their connected companions can set, view, and manage medication reminders.
+- **Daily Journal:** Patients can maintain a private journal to log their progress, thoughts, and challenges. Companions can view these entries to stay informed.
+- **Real-Time Chat:** A secure, one-to-one chat allows for instant communication and support.
 
-The journey to recovery after a stroke is a profound challenge, not just for the survivor but for their entire support system. Patients often grapple with memory loss and cognitive difficulties, while caregivers face the emotional and logistical burden of providing constant support. A critical challenge is maintaining a seamless flow of information and emotional connection, which can be fragmented across various messaging apps, phone calls, and calendars.
+## How to Run Locally
 
-Our Stroke Recovery & Connection Hub was born from a desire to solve this problem. We envision a world where a caregiver can be hundreds of miles away but still feel deeply connected to their loved one's recovery journey. This app is more than just a tool; it's a lifeline designed to reduce anxiety, foster encouragement, and provide a shared space for the recovery process.
+Follow these instructions to set up and run the project on your local machine.
 
----
+### Prerequisites
 
-## ✨ How It Works: Features
-
-The platform provides a secure, role-based experience for both patients (on a mobile app) and their companions (on this web app).
-
-### 1. Secure User Authentication & Connection
-- **Role-Based Accounts:** Users can register as either a patient or a companion, with a secure login system powered by **Appwrite Authentication**.
-- **Privacy-First Connection System:** A patient can view their unique, private `shareable_id` from their dashboard. They can share this ID with a trusted companion. The companion can then enter this ID on their dashboard to create a secure link between their accounts. This process, managed by **Appwrite Databases** with strict permissions, ensures that a patient's sensitive data is only shared with their explicit consent.
-
-### 2. The Companion Dashboard: A Central Hub for Support
-Once connected, the companion gains access to a comprehensive dashboard with read-only views of the patient's data:
-
-- **At-a-Glance Progress Monitoring:** The dashboard displays the patient's most recent **memory and cognition scores**, offering caregivers valuable insight into their recovery progress.
-- **Shared Journal Entries:** Caregivers can read the patient's journal entries, providing a window into their thoughts, feelings, and daily experiences. This fosters empathy and helps the caregiver provide more targeted emotional support.
-- **Upcoming Reminders:** The dashboard lists the patient's upcoming reminders—for medication, appointments, or therapy exercises—allowing the caregiver to stay informed and offer timely encouragement.
-
-### 3. Real-time Communication
-- **Integrated Messaging:** A core feature of the hub is the real-time chat, powered by **Appwrite's Realtime Service**. A companion can select a connected patient and engage in a seamless, private conversation directly within the app, eliminating the need for external messaging platforms.
+- [Node.js](https://nodejs.org/) (v14 or later)
+- [npm](https://www.npmjs.com/) (usually included with Node.js)
+- A local or cloud-hosted [Appwrite](https://appwrite.io/) instance (v1.5 or later)
 
 ---
 
-## 🛠️ Tech Stack: How We Built It
+### **1. Backend Setup (Appwrite Console)**
 
-- **Frontend:**
-  - **React:** For building a dynamic and responsive user interface.
-  - **Vite:** As the next-generation frontend tooling for a blazing-fast development experience.
-  - **Tailwind CSS:** For creating a modern, utility-first, and visually consistent design.
+Before running the frontend, you must configure the Appwrite backend.
 
-- **Backend (Appwrite Cloud):**
-  - **Appwrite Authentication:** Manages all user sign-ups, logins, and secure sessions.
-  - **Appwrite Databases:** The backbone of our application. We use multiple collections with carefully configured permissions to store all data:
-    - `users`: Stores user profiles and `shareable_id`s.
-    - `user_relationships`: Securely links companions to patients.
-    - `progress_table`, `journal_table`, `reminders_table`: Store patient-generated data, with read access granted only to linked companions.
-    - `messages_table`: Stores chat messages with permissions ensuring only the sender and receiver can read them.
-  - **Appwrite Realtime:** Powers the instant messaging feature, allowing for live updates and communication without needing to refresh the page.
+#### **A. Create a New Project**
+
+1.  Log in to your Appwrite Console.
+2.  Click **"Create project"** and give it a name (e.g., "Stroke Recovery Hub").
+3.  Copy the **Project ID** from the project's settings page. You will need this later.
+4.  Under "Platforms," add a **Web App** platform. Use `localhost` for the hostname during local development.
+
+#### **B. Create Database & Collections**
+
+1.  Navigate to **Databases** and create a new database. Give it a name and copy its **Database ID**.
+2.  Create the following collections within that database, along with their required attributes and indexes.
+
+    <details>
+    <summary><strong>Collection: `users`</strong></summary>
+
+    - **Attributes:**
+        - `name`: String, Size: 128, **Required**
+        - `email`: Email, Size: 128, **Required**
+        - `shareable_id`: String, Size: 10, **Required**
+        - `role`: String, Size: 20, **Required**
+    - **Indexes:**
+        - `shareable_id_index`: Type: `key`, Attributes: `shareable_id` (ASC)
+    - **Settings (Permissions):**
+        - Add Role: `Users`, with **Read** access.
+    </details>
+
+    <details>
+    <summary><strong>Collection: `user_relationships`</strong></summary>
+
+    - **Attributes:**
+        - `patient_id`: String, Size: 128, **Required**
+        - `companion_id`: String, Size: 128, **Required**
+    - **Indexes:**
+        - `patient_id_index`: Type: `key`, Attributes: `patient_id` (ASC)
+        - `companion_id_index`: Type: `key`, Attributes: `companion_id` (ASC)
+    </details>
+
+    <details>
+    <summary><strong>Collection: `reminders_table`</strong></summary>
+
+    - **Attributes:**
+        - `userID`: String, Size: 128, **Required**
+        - `title`: String, Size: 255, **Required**
+        - `time`: Datetime, **Required**
+        - `is_completed`: Boolean, Default value: `false`
+    - **Indexes:**
+        - `userID_index`: Type: `key`, Attributes: `userID` (ASC)
+    </details>
+
+    <details>
+    <summary><strong>Collection: `journal_table`</strong></summary>
+
+    - **Attributes:**
+        - `userID`: String, Size: 128, **Required**
+        - `content`: String, Size: 10000, **Required**
+    - **Indexes:**
+        - `userID_index`: Type: `key`, Attributes: `userID` (ASC)
+    </details>
+
+    <details>
+    <summary><strong>Collection: `chat_messages`</strong></summary>
+
+    - **Attributes:**
+        - `relationship_id`: String, Size: 128, **Required**
+        - `sender_id`: String, Size: 128, **Required**
+        - `content`: String, Size: 10000, **Required**
+    - **Indexes:**
+        - `relationship_id_index`: Type: `key`, Attributes: `relationship_id` (ASC)
+    </details>
+
+---
+
+### **2. Frontend Setup (Local Machine)**
+
+1.  **Clone the Repository**
+    ```bash
+    git clone <your-repository-url>
+    cd <repository-folder>
+    ```
+
+2.  **Create Environment File**
+    - Create a new file named `.env.local` in the root of the project folder.
+    - Add your Appwrite project details to this file:
+
+    ```
+    VITE_APPWRITE_PROJECT_ID=<YOUR_PROJECT_ID>
+    VITE_APPWRITE_DATABASE_ID=<YOUR_DATABASE_ID>
+    VITE_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+    ```
+    *(Replace `<...>` with the IDs you copied earlier. Use the default endpoint if using Appwrite Cloud).*
+
+3.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
+
+4.  **Run the Development Server**
+    ```bash
+    npm run dev
+    ```
+
+5.  Open your browser and navigate to `http://localhost:5173` (or the address provided by Vite). You should now be able to register new accounts and use the application.

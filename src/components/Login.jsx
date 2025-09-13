@@ -14,13 +14,6 @@ const Login = ({ setLoggedInUser }) => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // --- Demo accounts for Hackathon testing ---
-  const demoUsers = [
-    { name: 'Catherine (Companion)', email: 'catherine@demo.com', password: 'password123', role: 'caregiver' },
-    { name: 'John (Patient)', email: 'john@demo.com', password: 'password123', role: 'patient' },
-    { name: 'Jane (Patient)', email: 'jane@demo.com', password: 'password123', role: 'patient' },
-  ];
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -55,7 +48,7 @@ const Login = ({ setLoggedInUser }) => {
       // 2. Log the new user in to establish a session.
       await account.createEmailPasswordSession(email, password);
 
-      // 3. Create the user's document in the database.
+      // 3. Create the user's document in the database with secure permissions.
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
       await databases.createDocument(
         '68b213e7001400dc7f21', // Database ID
@@ -68,8 +61,10 @@ const Login = ({ setLoggedInUser }) => {
           role: role,
         },
         [
-          Permission.read(Role.users()),      // Any logged in user can search for other users.
-          Permission.update(Role.user(userId)), // Only the user themselves can update their own profile.
+          // This is the most secure and correct setting:
+          // Only the user who owns this document can read or update it.
+          Permission.read(Role.user(userId)),
+          Permission.update(Role.user(userId)),
         ]
       );
 
@@ -84,7 +79,6 @@ const Login = ({ setLoggedInUser }) => {
       if (e.code === 409) {
         setError('User with this email already exists. Please sign in.');
       } else {
-        console.error('An auth account was created but database setup failed.');
         setError(e.message || 'Registration failed.');
       }
     }
@@ -101,23 +95,13 @@ const Login = ({ setLoggedInUser }) => {
     }
   };
 
-  const useDemoAccount = (user) => {
-    setFormData({
-      email: user.email,
-      password: user.password,
-      name: user.name.split(' (')[0], // Extract first name
-      role: user.role
-    });
-    setError(''); // Clear any previous errors
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-extrabold text-slate-900">Stroke Recovery Hub</h1>
           <p className="mt-2 text-md text-slate-600">
-            {isRegistering ? 'Create your account' : 'Welcome back'}
+            {isRegistering ? 'Create your account to get started' : 'Welcome back'}
           </p>
         </div>
 
@@ -168,28 +152,6 @@ const Login = ({ setLoggedInUser }) => {
             </button>
           </div>
         </div>
-
-        {/* Demo Accounts Section */}
-        <div className="mt-8 w-full max-w-md">
-            <div className="bg-white p-6 shadow-xl rounded-lg">
-                <h3 className="text-lg font-bold text-slate-800 text-center mb-4">Demo Accounts</h3>
-                <p className="text-center text-sm text-slate-600 mb-4">First time? Use these to register with the correct role. Otherwise, just sign in.</p>
-                <div className="space-y-3">
-                    {demoUsers.map(user => (
-                        <div key={user.email} className="p-3 bg-slate-50 rounded-lg flex items-center justify-between">
-                            <div>
-                                <p className="font-semibold text-slate-700">{user.name}</p>
-                                <p className="text-xs text-slate-500">{user.email} / pw: {user.password}</p>
-                            </div>
-                            <button onClick={() => useDemoAccount(user)} className="px-3 py-1 text-sm font-medium text-white bg-indigo-500 rounded-md hover:bg-indigo-600 focus:outline-none">
-                                Use
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-
       </div>
     </div>
   );
