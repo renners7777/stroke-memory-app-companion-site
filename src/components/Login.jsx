@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { account, ID, databases } from '../lib/appwrite'; // Removed unused Permission, Role
+import { account, ID, databases } from '../lib/appwrite';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
@@ -19,34 +19,24 @@ const Login = ({ setLoggedInUser }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Updated login function
   async function login(email, password) {
     try {
       setError('');
-      // 1. Create the session
       await account.createEmailPasswordSession(email, password);
-      
-      // 2. Get the basic user object to find the ID
       const user = await account.get();
-
-      // 3. Fetch the full user profile from the database
       const fullUserProfile = await databases.getDocument(
-        '68b213e7001400dc7f21', // Database ID
-        'users',               // Users collection ID
-        user.$id             // User ID from the session
+        '68b213e7001400dc7f21',
+        'users',
+        user.$id
       );
-      
-      // 4. Set the complete user object in the app state
       setLoggedInUser(fullUserProfile);
       navigate('/dashboard');
-
     } catch (e) {
       console.error('Login failed:', e);
       setError(e.message || 'Login failed. Please check your credentials.');
     }
   }
 
-  // Updated register function
   async function register(email, password, name, role) {
     try {
       setError('');
@@ -54,33 +44,22 @@ const Login = ({ setLoggedInUser }) => {
         setError('All fields, including role, are required for registration.');
         return;
       }
-
-      // 1. Create the authentication account
       const newUser = await account.create(ID.unique(), email, password, name);
-
-      // 2. Create the user document in the database
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
       const newUserDocument = await databases.createDocument(
-        '68b213e7001400dc7f21', // Database ID
-        'users',              // Users collection ID
-        newUser.$id,          // Use the new user's ID for the document ID
+        '68b213e7001400dc7f21',
+        'users',
+        newUser.$id,
         {
           name: name,
           email: email,
           shareable_id: shareableId,
           role: role,
-          // caregiver_id will be set later
         }
-        // Permissions are now set at the table level in the Appwrite console
       );
-
-      // 3. Log the new user in, which creates the active session
       await account.createEmailPasswordSession(email, password);
-
-      // 4. Update app state with the complete user document and navigate
       setLoggedInUser(newUserDocument);
       navigate('/dashboard');
-
     } catch (e) {
       console.error('Registration error:', e);
       setError(e.message || 'Registration failed.');
@@ -101,14 +80,14 @@ const Login = ({ setLoggedInUser }) => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold text-slate-900">Stroke Recovery Hub</h1>
-          <p className="mt-2 text-md text-slate-600">
-            {isRegistering ? 'Create your account to get started' : 'Welcome back'}
-          </p>
-        </div>
-
+        {/* The redundant header has been removed from here. */}
         <div className="bg-white p-8 shadow-xl rounded-lg">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-slate-800">
+              {isRegistering ? 'Create Your Account' : 'Sign In'}
+            </h2>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
