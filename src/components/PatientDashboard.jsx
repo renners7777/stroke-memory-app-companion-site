@@ -10,15 +10,14 @@ const PatientDashboard = ({ user }) => {
   const [error, setError] = useState(null);
   const [companion, setCompanion] = useState(null);
 
-  // This effect now correctly fetches the companion using the full user object
   useEffect(() => {
     const fetchCompanion = async () => {
       if (user && user.caregiver_id) {
           try {
               const response = await databases.getDocument(
-                  '68b213e7001400dc7f21', // Database ID
-                  'users',                // Collection ID
-                  user.caregiver_id      // Caregiver ID from the full user object
+                  '68b213e7001400dc7f21',
+                  'users',
+                  user.caregiver_id
               );
               setCompanion(response);
           } catch(err) {
@@ -30,7 +29,6 @@ const PatientDashboard = ({ user }) => {
     fetchCompanion();
   }, [user]);
 
-  // Fetch reminders and journal entries
   useEffect(() => {
     if (!user) return;
     const fetchPatientData = async () => {
@@ -61,15 +59,28 @@ const PatientDashboard = ({ user }) => {
     fetchPatientData();
   }, [user]);
 
-  // This function now reliably grants permission to the caregiver
+  // Corrected function to handle journal entries with proper permissions
   const handleAddJournalEntry = async (e) => {
     e.preventDefault();
-    if (!newJournalEntry.trim() || !user.caregiver_id) {
-        setError("You must be connected to a companion to create a journal entry.");
+    if (!newJournalEntry.trim()) {
+        setError("Journal entry cannot be empty.");
         return;
     }
 
     setError(null);
+
+    // Base permissions for the patient themselves
+    const permissions = [
+        Permission.read(Role.user(user.$id)),
+        Permission.update(Role.user(user.$id)),
+        Permission.delete(Role.user(user.$id)),
+    ];
+
+    // If a caregiver is linked, grant them read access as well
+    if (user.caregiver_id) {
+        permissions.push(Permission.read(Role.user(user.caregiver_id)));
+    }
+
     try {
       await databases.createDocument(
         '68b213e7001400dc7f21',
@@ -79,12 +90,7 @@ const PatientDashboard = ({ user }) => {
           userID: user.$id,
           entry_text: newJournalEntry,
         },
-        [
-            Permission.read(Role.user(user.$id)),
-            Permission.read(Role.user(user.caregiver_id)), // Grant read to caregiver
-            Permission.update(Role.user(user.$id)),
-            Permission.delete(Role.user(user.$id)),
-        ]
+        permissions // Use the dynamically created permissions array
       );
       setNewJournalEntry('');
       // Refresh list after adding
@@ -96,7 +102,7 @@ const PatientDashboard = ({ user }) => {
       setJournalEntries(journalResponse.documents);
     } catch (err) {
       console.error('Failed to add journal entry:', err);
-      setError('Failed to add journal entry. Please ensure permissions are correct.');
+      setError(`Failed to add journal entry: ${err.message}`);
     }
   };
 

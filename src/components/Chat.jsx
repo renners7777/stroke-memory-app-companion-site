@@ -41,7 +41,6 @@ const Chat = ({ user, selectedUser }) => {
 
     const unsubscribe = client.subscribe(`databases.68b213e7001400dc7f21.collections.messages_table.documents`, response => {
       if(response.events.includes("databases.*.collections.*.documents.*.create")){
-        // Check if the message involves the current participants
         const participants = response.payload.participants;
         if (participants && participants.includes(user.$id) && participants.includes(selectedUser.$id)) {
             setMessages(prevMessages => [...prevMessages, response.payload]);
@@ -54,6 +53,7 @@ const Chat = ({ user, selectedUser }) => {
     };
   }, [user.$id, selectedUser]);
 
+  // Corrected function to send a message with proper permissions
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser) return;
@@ -68,17 +68,19 @@ const Chat = ({ user, selectedUser }) => {
           sender_id: user.$id,
           receiver_id: selectedUser.$id,
           message: newMessage,
-          participants: [user.$id, selectedUser.$id].sort() // Sort to ensure consistency
+          participants: [user.$id, selectedUser.$id].sort()
         },
         [
             Permission.read(Role.user(user.$id)),
-            Permission.read(Role.user(selectedUser.$id)),
+            Permission.update(Role.user(user.$id)), // Sender can update/delete
+            Permission.delete(Role.user(user.$id)),
+            Permission.read(Role.user(selectedUser.$id)), // Receiver can only read
         ]
       );
       setNewMessage('');
     } catch (err) {
       console.error('Failed to send message:', err);
-      setError("Could not send message. Please ensure the 'messages_table' collection has the correct permissions.");
+      setError(`Failed to send message: ${err.message}`);
     }
   };
 

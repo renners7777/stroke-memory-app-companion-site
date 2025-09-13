@@ -78,7 +78,6 @@ const CaregiverDashboard = ({ user }) => {
       return;
     }
     try {
-      // Find the patient with the matching shareable ID
       const patientResponse = await databases.listDocuments(
         '68b213e7001400dc7f21',
         'users',
@@ -92,7 +91,6 @@ const CaregiverDashboard = ({ user }) => {
 
       const patientToLink = patientResponse.documents[0];
 
-      // Update the patient's document to add this caregiver's ID
       await databases.updateDocument(
         '68b213e7001400dc7f21',
         'users',
@@ -101,14 +99,14 @@ const CaregiverDashboard = ({ user }) => {
       );
 
       setShareableIdInput('');
-      await fetchPatients(); // Refresh the patient list
+      await fetchPatients();
     } catch (err) {
       console.error('Failed to link patient:', err);
       setError('Failed to link patient. Please check the ID and try again.');
     }
   };
 
-  // Function to add a reminder for the selected patient
+  // Corrected function to add a reminder with proper permissions
   const handleAddReminder = async (e) => {
     e.preventDefault();
     if (!newReminderText || !newReminderDate || !selectedPatient) return;
@@ -126,10 +124,11 @@ const CaregiverDashboard = ({ user }) => {
           completed: false,
         },
         [
-          Permission.read(Role.user(selectedPatient.$id)), // Patient can read
-          Permission.read(Role.user(user.$id)),             // Caregiver can read
-          Permission.update(Role.user(user.$id)),           // Only caregiver can update
-          Permission.delete(Role.user(user.$id)),            // Only caregiver can delete
+          Permission.read(Role.user(selectedPatient.$id)),
+          Permission.read(Role.user(user.$id)),
+          Permission.update(Role.user(selectedPatient.$id)), // Allow patient to mark as complete
+          Permission.update(Role.user(user.$id)),
+          Permission.delete(Role.user(user.$id)),
         ]
       );
       // Refresh list
@@ -143,7 +142,7 @@ const CaregiverDashboard = ({ user }) => {
       setShowAddReminder(false);
     } catch (err) {
       console.error('Failed to add reminder:', err);
-      setError('Failed to add reminder.');
+      setError(`Failed to add reminder: ${err.message}`); // Show detailed error
     }
   };
 
