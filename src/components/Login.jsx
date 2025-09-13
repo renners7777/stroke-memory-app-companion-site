@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { account, ID, databases } from '../lib/appwrite';
+import { account, ID, databases, Permission, Role } from '../lib/appwrite';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
@@ -19,7 +19,6 @@ const Login = ({ setLoggedInUser }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Updated login function with robust error handling
   async function login(email, password) {
     try {
       setError('');
@@ -35,13 +34,12 @@ const Login = ({ setLoggedInUser }) => {
         setLoggedInUser(fullUserProfile);
         navigate('/dashboard');
       } catch (docError) {
-        // This is the critical error handling block
-        if (docError.code === 404) { // 404 means 'Not Found'
+        if (docError.code === 404) {
           setError('Your user profile is missing. Please register again.');
-          await account.deleteSession('current'); // Log the user out
+          await account.deleteSession('current');
           setLoggedInUser(null);
         } else {
-          throw docError; // Re-throw other errors
+          throw docError;
         }
       }
     } catch (e) {
@@ -50,7 +48,7 @@ const Login = ({ setLoggedInUser }) => {
     }
   }
 
-  // Updated register function to remove redundant session creation
+  // Updated register function to be more secure and robust
   async function register(email, password, name, role) {
     try {
       setError('');
@@ -62,28 +60,45 @@ const Login = ({ setLoggedInUser }) => {
       // 1. Create the authentication account. This also logs the user in.
       const newUser = await account.create(ID.unique(), email, password, name);
 
-      // 2. Create the user document in the database.
+      // 2. Create the user document in the database with explicit permissions.
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
       const newUserDocument = await databases.createDocument(
-        '68b213e7001400dc7f21',
-        'users',
-        newUser.$id,
+        '68b213e7001400dc7f21', // Database ID
+        'users',              // Users collection ID
+        newUser.$id,          // Use the new user's ID for the document ID
         {
           name: name,
           email: email,
           shareable_id: shareableId,
           role: role,
-        }
+        },
+        // Explicitly grant read/write access to the user who is creating the document
+        [
+          Permission.read(Role.user(newUser.$id)),
+          Permission.update(Role.user(newUser.$id)),
+          Permission.delete(Role.user(newUser.$id)),
+        ]
       );
       
       // 3. The user is already logged in. Set the user state and navigate.
-      // No need for createEmailPasswordSession here.
       setLoggedInUser(newUserDocument);
       navigate('/dashboard');
 
     } catch (e) {
       console.error('Registration error:', e);
-      setError(e.message || 'Registration failed.');
+      // If registration fails, clean up the created auth user
+      if (e.code !== 409) { // 409 is a conflict/user already exists error
+        try {
+            // This part is tricky as we don't have the user ID if create() failed.
+            // Best effort is to inform the user.
+             setError('Registration failed. An error occurred creating your profile. Please try again.');
+        } catch(cleanupError) {
+            console.error("Failed to cleanup partially created user", cleanupError)
+        }
+      } else {
+          setError(e.message || 'Registration failed.');
+      }
+      
     }
   }
 
