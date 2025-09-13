@@ -21,7 +21,7 @@ const Home = () => {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zM12 14l6.16-3.422A12.083 12.083 0 0112 21a12.083 12.083 0 01-6.16-10.422L12 14z" /></svg>
-              <span className="text-xl font-bold">Stroke Memory App</span>
+              <span className="text-xl font-bold">Stroke Recovery Hub</span>
             </div>
             <Link
               to="/login"
@@ -85,7 +85,7 @@ const Home = () => {
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
-          <p>&copy; {new Date().getFullYear()} Stroke Memory App Companion Site. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Stroke Recovery Hub. All rights reserved.</p>
         </div>
       </footer>
     </div>
