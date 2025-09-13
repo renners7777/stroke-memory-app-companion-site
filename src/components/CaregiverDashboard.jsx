@@ -9,7 +9,7 @@ const CaregiverDashboard = ({ user }) => {
   const [reminders, setReminders] = useState([]);
   const [journalEntries, setJournalEntries] = useState([]);
   const [showAddReminder, setShowAddReminder] = useState(false);
-  const [newReminderTitle, setNewReminderTitle] = useState(''); // Renamed state for clarity
+  const [newReminderTitle, setNewReminderTitle] = useState(''); 
   const [newReminderDate, setNewReminderDate] = useState('');
   const [error, setError] = useState(null);
   const [shareableIdInput, setShareableIdInput] = useState('');
@@ -100,7 +100,6 @@ const CaregiverDashboard = ({ user }) => {
     }
   };
 
-  // Corrected reminder creation to use 'title' attribute
   const handleAddReminder = async (e) => {
     e.preventDefault();
     if (!newReminderTitle || !newReminderDate || !selectedPatient) return;
@@ -114,7 +113,7 @@ const CaregiverDashboard = ({ user }) => {
         {
           userID: selectedPatient.$id,
           creatorID: user.$id,
-          title: newReminderTitle, // Corrected attribute
+          title: newReminderTitle,
           reminder_date: newReminderDate,
           completed: false,
         }
@@ -181,7 +180,7 @@ const CaregiverDashboard = ({ user }) => {
                       {reminders.length > 0 ? (
                         reminders.map(reminder => (
                           <li key={reminder.$id} className={`p-4 rounded-md ${reminder.completed ? 'bg-green-100' : 'bg-yellow-100'}`}>
-                            <p className="font-medium">{reminder.title}</p> {/* Corrected attribute */}
+                            <p className="font-medium">{reminder.title}</p>
                             <p className="text-sm text-slate-600">Due: {new Date(reminder.reminder_date).toLocaleString()}</p>
                             <p className={`text-sm font-semibold ${reminder.completed ? 'text-green-700' : 'text-yellow-700'}`}>
                               Status: {reminder.completed ? 'Completed' : 'Pending'}
@@ -213,6 +212,7 @@ const CaregiverDashboard = ({ user }) => {
                   </div>
                 </div>
 
+                {/* Updated to show journal entry titles */}
                 <div>
                     <h2 className="text-xl font-semibold text-slate-900 mb-4">Journal Entries from {selectedPatient.name}</h2>
                      <div className="bg-white p-6 shadow-lg rounded-lg">
@@ -221,6 +221,7 @@ const CaregiverDashboard = ({ user }) => {
                             journalEntries.map(entry => (
                             <li key={entry.$id} className="p-4 bg-slate-50 rounded-md">
                                 <p className="text-sm text-slate-500 mb-2">Logged on: {new Date(entry.$createdAt).toLocaleString()}</p>
+                                <h3 className="font-semibold mb-1">{entry.title}</h3>
                                 <p>{entry.entry_text}</p>
                             </li>
                             ))

@@ -6,6 +6,7 @@ import Messaging from './Messaging';
 const PatientDashboard = ({ user }) => {
   const [reminders, setReminders] = useState([]);
   const [journalEntries, setJournalEntries] = useState([]);
+  const [newJournalTitle, setNewJournalTitle] = useState(''); // New state for the title
   const [newJournalEntry, setNewJournalEntry] = useState('');
   const [error, setError] = useState(null);
   const [companion, setCompanion] = useState(null);
@@ -59,10 +60,11 @@ const PatientDashboard = ({ user }) => {
     fetchPatientData();
   }, [user]);
 
+  // Corrected to include a title for journal entries
   const handleAddJournalEntry = async (e) => {
     e.preventDefault();
-    if (!newJournalEntry.trim()) {
-        setError("Journal entry cannot be empty.");
+    if (!newJournalTitle.trim() || !newJournalEntry.trim()) {
+        setError("Journal title and entry cannot be empty.");
         return;
     }
 
@@ -75,9 +77,11 @@ const PatientDashboard = ({ user }) => {
         ID.unique(),
         {
           userID: user.$id,
+          title: newJournalTitle, // Added title
           entry_text: newJournalEntry,
         }
       );
+      setNewJournalTitle('');
       setNewJournalEntry('');
       const journalResponse = await databases.listDocuments(
         '68b213e7001400dc7f21', 
@@ -139,7 +143,7 @@ const PatientDashboard = ({ user }) => {
                         reminders.map(reminder => (
                         <li key={reminder.$id} className="flex items-center justify-between p-4 rounded-md bg-yellow-100">
                             <div>
-                                <p className="font-medium">{reminder.title}</p> {/* Corrected attribute */}
+                                <p className="font-medium">{reminder.title}</p>
                                 <p className="text-sm text-gray-600">Due: {new Date(reminder.reminder_date).toLocaleString()}</p>
                             </div>
                             <button 
@@ -159,14 +163,29 @@ const PatientDashboard = ({ user }) => {
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Private Journal</h2>
               <div className="bg-white p-6 shadow-lg rounded-lg">
-                <form onSubmit={handleAddJournalEntry} className="mb-6">
-                    <textarea 
-                        value={newJournalEntry}
-                        onChange={(e) => setNewJournalEntry(e.target.value)}
-                        rows="4"
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        placeholder="What's on your mind today?">
-                    </textarea>
+                <form onSubmit={handleAddJournalEntry} className="mb-6 space-y-4">
+                    <div>
+                        <label htmlFor="journalTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                        <input 
+                            id="journalTitle"
+                            type="text"
+                            value={newJournalTitle}
+                            onChange={(e) => setNewJournalTitle(e.target.value)}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            placeholder="A title for your entry">
+                        </input>
+                    </div>
+                    <div>
+                        <label htmlFor="journalEntry" className="block text-sm font-medium text-gray-700">Your Thoughts</label>
+                        <textarea 
+                            id="journalEntry"
+                            value={newJournalEntry}
+                            onChange={(e) => setNewJournalEntry(e.target.value)}
+                            rows="4"
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            placeholder="What's on your mind today?">
+                        </textarea>
+                    </div>
                     <button type="submit" className="mt-3 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Add Entry</button>
                 </form>
                 <ul className="space-y-4">
@@ -174,6 +193,7 @@ const PatientDashboard = ({ user }) => {
                         journalEntries.map(entry => (
                         <li key={entry.$id} className="p-4 bg-gray-50 rounded-md">
                             <p className="text-sm text-gray-500 mb-2">Logged on: {new Date(entry.$createdAt).toLocaleString()}</p>
+                            <h3 className="font-semibold mb-1">{entry.title}</h3>
                             <p>{entry.entry_text}</p>
                         </li>
                         ))
