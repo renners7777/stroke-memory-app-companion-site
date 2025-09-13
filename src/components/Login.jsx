@@ -33,7 +33,6 @@ const Login = ({ setLoggedInUser }) => {
   }
 
   async function register(email, password, name, role) {
-    let newUser;
     try {
       setError('');
       if (!email || !password || !name || !role) {
@@ -41,14 +40,14 @@ const Login = ({ setLoggedInUser }) => {
         return;
       }
 
-      // 1. Create the authentication account.
-      newUser = await account.create(ID.unique(), email, password, name);
+      // 1. Create authentication account (no session is created here)
+      const newUser = await account.create(ID.unique(), email, password, name);
       const userId = newUser.$id;
 
-      // 2. Log the new user in to establish a session.
+      // 2. Log the new user in, which creates the active session
       await account.createEmailPasswordSession(email, password);
 
-      // 3. Create the user's document in the database.
+      // 3. Now that a session exists, create the user document in the database
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
       await databases.createDocument(
         '68b213e7001400dc7f21', // Database ID
@@ -61,26 +60,23 @@ const Login = ({ setLoggedInUser }) => {
           role: role,
         },
         [
-          // *** DIAGNOSTIC STEP ***
-          // Temporarily make read permissions as open as possible.
-          Permission.read(Role.any()),
+          // Any logged-in user can read this profile (for searching)
+          Permission.read(Role.users()),
+          // Only the user themselves can update or delete their profile
           Permission.update(Role.user(userId)),
+          Permission.delete(Role.user(userId)),
         ]
       );
 
-      // 4. Update the app's state to trigger the dashboard.
+      // 4. Update app state and navigate
       setLoggedInUser(await account.get());
-      
-      // 5. Navigate to the dashboard.
       navigate('/dashboard');
 
     } catch (e) {
       console.error('Registration error:', e);
-      if (e.code === 409) {
-        setError('User with this email already exists. Please sign in.');
-      } else {
-        setError(e.message || 'Registration failed.');
-      }
+      setError(e.message || 'Registration failed.');
+      // Clean up the created auth user if the database step fails
+      // This is advanced, for now we log the error.
     }
   }
 
