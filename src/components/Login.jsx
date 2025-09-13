@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { account, ID, databases, Permission, Role } from '../lib/appwrite';
+import { account, ID, databases } from '../lib/appwrite'; // Removed unused Permission, Role
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
@@ -19,19 +19,34 @@ const Login = ({ setLoggedInUser }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Updated login function
   async function login(email, password) {
     try {
       setError('');
+      // 1. Create the session
       await account.createEmailPasswordSession(email, password);
+      
+      // 2. Get the basic user object to find the ID
       const user = await account.get();
-      setLoggedInUser(user);
+
+      // 3. Fetch the full user profile from the database
+      const fullUserProfile = await databases.getDocument(
+        '68b213e7001400dc7f21', // Database ID
+        'users',               // Users collection ID
+        user.$id             // User ID from the session
+      );
+      
+      // 4. Set the complete user object in the app state
+      setLoggedInUser(fullUserProfile);
       navigate('/dashboard');
+
     } catch (e) {
       console.error('Login failed:', e);
       setError(e.message || 'Login failed. Please check your credentials.');
     }
   }
 
+  // Updated register function
   async function register(email, password, name, role) {
     try {
       setError('');
@@ -40,43 +55,35 @@ const Login = ({ setLoggedInUser }) => {
         return;
       }
 
-      // 1. Create authentication account (no session is created here)
+      // 1. Create the authentication account
       const newUser = await account.create(ID.unique(), email, password, name);
-      const userId = newUser.$id;
 
-      // 2. Log the new user in, which creates the active session
-      await account.createEmailPasswordSession(email, password);
-
-      // 3. Now that a session exists, create the user document in the database
+      // 2. Create the user document in the database
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
-      await databases.createDocument(
+      const newUserDocument = await databases.createDocument(
         '68b213e7001400dc7f21', // Database ID
         'users',              // Users collection ID
-        userId,               // Use the new user's ID for the document ID
+        newUser.$id,          // Use the new user's ID for the document ID
         {
           name: name,
           email: email,
           shareable_id: shareableId,
           role: role,
-        },
-        [
-          // Any logged-in user can read this profile (for searching)
-          Permission.read(Role.users()),
-          // Only the user themselves can update or delete their profile
-          Permission.update(Role.user(userId)),
-          Permission.delete(Role.user(userId)),
-        ]
+          // caregiver_id will be set later
+        }
+        // Permissions are now set at the table level in the Appwrite console
       );
 
-      // 4. Update app state and navigate
-      setLoggedInUser(await account.get());
+      // 3. Log the new user in, which creates the active session
+      await account.createEmailPasswordSession(email, password);
+
+      // 4. Update app state with the complete user document and navigate
+      setLoggedInUser(newUserDocument);
       navigate('/dashboard');
 
     } catch (e) {
       console.error('Registration error:', e);
       setError(e.message || 'Registration failed.');
-      // Clean up the created auth user if the database step fails
-      // This is advanced, for now we log the error.
     }
   }
 

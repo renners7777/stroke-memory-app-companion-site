@@ -10,60 +10,64 @@ const PatientDashboard = ({ user }) => {
   const [error, setError] = useState(null);
   const [companion, setCompanion] = useState(null);
 
-  // Fetch companion info
+  // This effect now correctly fetches the companion using the full user object
   useEffect(() => {
     const fetchCompanion = async () => {
-      // The patient document should have a caregiver_id field.
-      if (user.caregiver_id) {
+      if (user && user.caregiver_id) {
           try {
               const response = await databases.getDocument(
                   '68b213e7001400dc7f21', // Database ID
                   'users',                // Collection ID
-                  user.caregiver_id      // Get ID from the user object
+                  user.caregiver_id      // Caregiver ID from the full user object
               );
               setCompanion(response);
           } catch(err) {
               console.error("Failed to fetch companion:", err);
-              setError("Could not load your companion's details. Please ensure the user ID is correct.");
+              setError("Could not load your companion's details.");
           }
       }
     };
     fetchCompanion();
-  }, [user.caregiver_id]);
+  }, [user]);
 
   // Fetch reminders and journal entries
   useEffect(() => {
+    if (!user) return;
     const fetchPatientData = async () => {
       setError(null);
       try {
-        // Fetch reminders
+        const commonQuery = [Query.equal('userID', user.$id)];
+        
         const reminderResponse = await databases.listDocuments(
-          '68b213e7001400dc7f21', // Your database ID
-          'reminders_table',      // Your reminders collection ID
-          [Query.equal('userID', user.$id)]
+          '68b213e7001400dc7f21',
+          'reminders_table',
+          commonQuery
         );
         setReminders(reminderResponse.documents);
 
-        // Fetch journal entries
         const journalResponse = await databases.listDocuments(
-          '68b213e7001400dc7f21', // Your database ID
-          'journal_table',     // Your journal entries collection ID
-          [Query.equal('userID', user.$id)]
+          '68b213e7001400dc7f21',
+          'journal_table',
+          commonQuery
         );
         setJournalEntries(journalResponse.documents);
 
       } catch (err) {
         console.error('Failed to fetch patient data:', err);
-        setError('Failed to load your data. Please check collection permissions and ensure you are connected to a caregiver.');
+        setError('Failed to load your data. Please try refreshing the page.');
       }
     };
 
     fetchPatientData();
-  }, [user.$id]);
+  }, [user]);
 
+  // This function now reliably grants permission to the caregiver
   const handleAddJournalEntry = async (e) => {
     e.preventDefault();
-    if (!newJournalEntry.trim()) return;
+    if (!newJournalEntry.trim() || !user.caregiver_id) {
+        setError("You must be connected to a companion to create a journal entry.");
+        return;
+    }
 
     setError(null);
     try {
@@ -77,24 +81,22 @@ const PatientDashboard = ({ user }) => {
         },
         [
             Permission.read(Role.user(user.$id)),
-            Permission.read(Role.user(user.caregiver_id)), // Correctly use caregiver_id
+            Permission.read(Role.user(user.caregiver_id)), // Grant read to caregiver
             Permission.update(Role.user(user.$id)),
             Permission.delete(Role.user(user.$id)),
         ]
       );
       setNewJournalEntry('');
-
-      // Refresh journal entries
+      // Refresh list after adding
       const journalResponse = await databases.listDocuments(
         '68b213e7001400dc7f21', 
         'journal_table', 
         [Query.equal('userID', user.$id)]
       );
       setJournalEntries(journalResponse.documents);
-
     } catch (err) {
       console.error('Failed to add journal entry:', err);
-      setError('Failed to add journal entry. Check collection-level permissions.');
+      setError('Failed to add journal entry. Please ensure permissions are correct.');
     }
   };
 
@@ -107,20 +109,22 @@ const PatientDashboard = ({ user }) => {
         reminderId, 
         { completed: !currentStatus }
       );
-
-      // Refresh reminders list
+      // Refresh list after updating
       const reminderResponse = await databases.listDocuments(
         '68b213e7001400dc7f21', 
         'reminders_table', 
         [Query.equal('userID', user.$id)]
       );
       setReminders(reminderResponse.documents);
-
     } catch (err) {
       console.error('Failed to update reminder:', err);
-      setError('Failed to update reminder status. Please check your permissions.');
+      setError('Failed to update reminder status.');
     }
   };
+
+  if (!user) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -128,10 +132,14 @@ const PatientDashboard = ({ user }) => {
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Welcome, {user.name}!</h1>
 
         {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">{error}</div>}
+        
+        {!user.caregiver_id && (
+          <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-4" role="alert">
+            You are not yet connected to a companion. Please use your Shareable ID ({user.shareable_id}) to connect.
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* Main Content: Reminders and Journal */}
           <div className="lg:col-span-2 space-y-8">
             {/* Reminders Section */}
             <div>

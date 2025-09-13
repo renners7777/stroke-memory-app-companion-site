@@ -12,25 +12,25 @@ const CaregiverDashboard = ({ user }) => {
   const [newReminderText, setNewReminderText] = useState('');
   const [newReminderDate, setNewReminderDate] = useState('');
   const [error, setError] = useState(null);
+  const [shareableIdInput, setShareableIdInput] = useState('');
 
-  // Fetch patients linked to this caregiver
+  // Function to fetch patients linked to this caregiver
+  const fetchPatients = async () => {
+    try {
+      const response = await databases.listDocuments(
+        '68b213e7001400dc7f21', // Database ID
+        'users',              // Collection ID
+        [Query.equal('caregiver_id', user.$id)]
+      );
+      setPatients(response.documents);
+    } catch (err) {
+      console.error('Failed to fetch patients:', err);
+      setError('Could not fetch your patient list.');
+    }
+  };
+
+  // Fetch patients on initial load
   useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        const response = await databases.listDocuments(
-          '68b213e7001400dc7f21', // Database ID
-          'users',                // Collection ID
-          [
-            Query.equal('role', 'patient'),
-            Query.equal('caregiver_id', user.$id) // Corrected attribute
-          ]
-        );
-        setPatients(response.documents);
-      } catch (err) {
-        console.error('Failed to fetch patients:', err);
-        setError('Could not fetch your patient list. Please ensure the \'users\' collection and attributes are correctly configured.');
-      }
-    };
     fetchPatients();
   }, [user.$id]);
 
@@ -45,30 +45,70 @@ const CaregiverDashboard = ({ user }) => {
     const fetchData = async () => {
       setError(null);
       try {
-        // Fetch reminders
+        const commonQuery = [Query.equal('userID', selectedPatient.$id)];
+
         const reminderResponse = await databases.listDocuments(
           '68b213e7001400dc7f21',
           'reminders_table',
-          [Query.equal('userID', selectedPatient.$id)]
+          commonQuery
         );
         setReminders(reminderResponse.documents);
 
-        // Fetch journal entries
         const journalResponse = await databases.listDocuments(
           '68b213e7001400dc7f21',
           'journal_table',
-          [Query.equal('userID', selectedPatient.$id)]
+          commonQuery
         );
         setJournalEntries(journalResponse.documents);
       } catch (err) {
         console.error(`Failed to fetch data for ${selectedPatient.name}:`, err);
-        setError(`Could not load data for ${selectedPatient.name}. Please check collection permissions.`);
+        setError(`Could not load data for ${selectedPatient.name}. This may be a permissions issue. Ensure the patient has shared their journal with you.`);
       }
     };
 
     fetchData();
   }, [selectedPatient]);
 
+  // Function to link a patient using their shareable ID
+  const handleLinkPatient = async (e) => {
+    e.preventDefault();
+    setError(null);
+    if (!shareableIdInput.trim()) {
+      setError('Please enter a shareable ID.');
+      return;
+    }
+    try {
+      // Find the patient with the matching shareable ID
+      const patientResponse = await databases.listDocuments(
+        '68b213e7001400dc7f21',
+        'users',
+        [Query.equal('shareable_id', shareableIdInput.trim())]
+      );
+
+      if (patientResponse.documents.length === 0) {
+        setError('No patient found with that ID.');
+        return;
+      }
+
+      const patientToLink = patientResponse.documents[0];
+
+      // Update the patient's document to add this caregiver's ID
+      await databases.updateDocument(
+        '68b213e7001400dc7f21',
+        'users',
+        patientToLink.$id,
+        { caregiver_id: user.$id }
+      );
+
+      setShareableIdInput('');
+      await fetchPatients(); // Refresh the patient list
+    } catch (err) {
+      console.error('Failed to link patient:', err);
+      setError('Failed to link patient. Please check the ID and try again.');
+    }
+  };
+
+  // Function to add a reminder for the selected patient
   const handleAddReminder = async (e) => {
     e.preventDefault();
     if (!newReminderText || !newReminderDate || !selectedPatient) return;
@@ -86,34 +126,25 @@ const CaregiverDashboard = ({ user }) => {
           completed: false,
         },
         [
-          Permission.read(Role.user(user.$id)),
-          Permission.read(Role.user(selectedPatient.$id)),
-          Permission.update(Role.user(user.$id)),
-          Permission.update(Role.user(selectedPatient.$id)),
-          Permission.delete(Role.user(user.$id)),
+          Permission.read(Role.user(selectedPatient.$id)), // Patient can read
+          Permission.read(Role.user(user.$id)),             // Caregiver can read
+          Permission.update(Role.user(user.$id)),           // Only caregiver can update
+          Permission.delete(Role.user(user.$id)),            // Only caregiver can delete
         ]
       );
-
-      // Refresh reminders list
+      // Refresh list
       const reminderResponse = await databases.listDocuments(
-        '68b213e7001400dc7f21',
-        'reminders_table',
-        [Query.equal('userID', selectedPatient.$id)]
+        '68b213e7001400dc7f21', 'reminders_table', [Query.equal('userID', selectedPatient.$id)]
       );
       setReminders(reminderResponse.documents);
-
       // Reset form
       setNewReminderText('');
       setNewReminderDate('');
       setShowAddReminder(false);
     } catch (err) {
       console.error('Failed to add reminder:', err);
-      setError('Failed to add reminder. Please check your collection-level permissions.');
+      setError('Failed to add reminder.');
     }
-  };
-
-  const handleSelectPatient = (patient) => {
-    setSelectedPatient(patient);
   };
 
   return (
@@ -124,18 +155,15 @@ const CaregiverDashboard = ({ user }) => {
         {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">{error}</div>}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Patient List */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-8">
+            {/* Patient List */}
             <div className="bg-white p-6 shadow-lg rounded-lg">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Your Patients</h2>
               <ul className="space-y-3">
                 {patients.length > 0 ? (
                   patients.map(patient => (
                     <li key={patient.$id}>
-                      <button
-                        onClick={() => handleSelectPatient(patient)}
-                        className={`w-full text-left px-4 py-3 rounded-md transition-colors ${selectedPatient?.$id === patient.$id ? 'bg-indigo-500 text-white' : 'bg-slate-100 hover:bg-slate-200'}`}
-                      >
+                      <button onClick={() => setSelectedPatient(patient)} className={`w-full text-left px-4 py-3 rounded-md transition-colors ${selectedPatient?.$id === patient.$id ? 'bg-indigo-500 text-white' : 'bg-slate-100 hover:bg-slate-200'}`}>
                         {patient.name}
                       </button>
                     </li>
@@ -145,6 +173,19 @@ const CaregiverDashboard = ({ user }) => {
                 )}
               </ul>
             </div>
+
+            {/* Link Patient Form */}
+            <div className="bg-white p-6 shadow-lg rounded-lg">
+                <h2 className="text-xl font-semibold text-slate-900 mb-4">Link to a New Patient</h2>
+                <form onSubmit={handleLinkPatient} className="space-y-4">
+                    <div>
+                        <label htmlFor="shareableIdInput" className="block text-sm font-medium text-slate-700">Patient's Shareable ID</label>
+                        <input id="shareableIdInput" type="text" value={shareableIdInput} onChange={e => setShareableIdInput(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                    </div>
+                    <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Link Patient</button>
+                </form>
+            </div>
+
           </div>
 
           {/* Patient Details */}
@@ -218,7 +259,7 @@ const CaregiverDashboard = ({ user }) => {
               </div>
             ) : (
               <div className="bg-white p-6 shadow-lg rounded-lg text-center">
-                <p className="text-slate-500">Select a patient to view their details.</p>
+                <p className="text-slate-500">Select or link to a patient to view their details.</p>
               </div>
             )}
           </div>

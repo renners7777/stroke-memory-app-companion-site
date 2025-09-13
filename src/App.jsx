@@ -3,14 +3,15 @@ import Home from './components/Home';
 import Login from './components/Login';
 import CaregiverDashboard from './components/CaregiverDashboard';
 import PatientDashboard from './components/PatientDashboard';
-import Header from './components/Header'; // Import the new Header
+import Header from './components/Header';
 import { useState, useEffect } from 'react';
-import { account } from './lib/appwrite';
+import { account, databases } from './lib/appwrite'; // Import databases
 import PropTypes from 'prop-types';
 import './App.css';
 
 // Helper to render the correct dashboard based on user role
 const DashboardRenderer = ({ user }) => {
+  // This check is now the key. It waits for the full user profile.
   if (!user || !user.role) {
     return <div className="min-h-screen flex items-center justify-center">Loading dashboard...</div>;
   }
@@ -34,13 +35,26 @@ const App = () => {
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // This effect now fetches the complete user profile
   useEffect(() => {
     const checkSession = async () => {
       setLoading(true);
       try {
+        // 1. Check for an active session and get the basic user
         const user = await account.get();
-        setLoggedInUser(user);
+        
+        // 2. Fetch the full user document from the database
+        const fullUserProfile = await databases.getDocument(
+          '68b213e7001400dc7f21', // Database ID
+          'users',               // Users collection ID
+          user.$id             // User ID from the session
+        );
+        
+        // 3. Set the complete user object in state
+        setLoggedInUser(fullUserProfile);
+
       } catch (error) {
+        // If there's no session or the user doc isn't found, stay logged out
         setLoggedInUser(null);
       } finally {
         setLoading(false);
@@ -55,21 +69,17 @@ const App = () => {
 
   return (
     <Router>
-      {/* The Header is now part of the main layout */}
       <Header loggedInUser={loggedInUser} setLoggedInUser={setLoggedInUser} />
       
       <main>
         <Routes>
-          {/* Home route is always available */}
           <Route path="/" element={<Home />} />
 
-          {/* Login route only accessible when logged out */}
           <Route 
             path="/login" 
             element={!loggedInUser ? <Login setLoggedInUser={setLoggedInUser} /> : <Navigate to="/dashboard" replace />}
           />
 
-          {/* Dashboard is protected and only accessible when logged in */}
           <Route 
             path="/dashboard" 
             element={
@@ -81,7 +91,6 @@ const App = () => {
             } 
           />
 
-          {/* Redirect any other path to the home page */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
