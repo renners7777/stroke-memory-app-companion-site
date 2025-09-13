@@ -105,7 +105,7 @@ const CaregiverDashboard = ({ user, logout }) => {
         return;
       }
 
-      // Relying only on collection-level permissions. This is the fix.
+      // This is now correct - relies on Collection-Level permissions
       await databases.createDocument(
         '68b213e7001400dc7f21',
         'user_relationships',
