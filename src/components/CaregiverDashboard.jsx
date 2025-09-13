@@ -105,6 +105,7 @@ const CaregiverDashboard = ({ user, logout }) => {
         return;
       }
 
+      // Relying only on collection-level permissions. This is the fix.
       await databases.createDocument(
         '68b213e7001400dc7f21',
         'user_relationships',
@@ -112,13 +113,7 @@ const CaregiverDashboard = ({ user, logout }) => {
         {
           companion_id: user.$id,
           patient_id: userToAdd.$id
-        },
-        [
-          Permission.read(Role.user(user.$id)),
-          Permission.write(Role.user(user.$id)),
-          Permission.read(Role.user(userToAdd.$id)),
-          Permission.write(Role.user(userToAdd.$id))
-        ]
+        }
       );
       
       setSuccess(`Successfully connected with ${userToAdd.name}.`);
