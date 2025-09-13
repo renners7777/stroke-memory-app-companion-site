@@ -86,7 +86,7 @@ const CaregiverDashboard = ({ user, logout }) => {
         'users',
         [
           Query.equal('shareable_id', newUserShareableId),
-          Query.equal('role', 'patient') // <-- More robust query!
+          Query.equal('role', 'patient')
         ]
       );
 
@@ -102,7 +102,7 @@ const CaregiverDashboard = ({ user, logout }) => {
         return;
       }
 
-      const relationshipDoc = await databases.createDocument(
+      await databases.createDocument(
         '68b213e7001400dc7f21',
         'user_relationships',
         ID.unique(),
@@ -112,17 +112,12 @@ const CaregiverDashboard = ({ user, logout }) => {
         },
         [
           Permission.read(Role.user(user.$id)),
-          Permission.read(Role.user(userToAdd.$id)),
           Permission.write(Role.user(user.$id)),
+          Permission.read(Role.user(userToAdd.$id)),
+          Permission.write(Role.user(userToAdd.$id)) // <<< THE FIX
         ]
       );
       
-      // Add relationship_id to user documents for chat retrieval
-      await Promise.all([
-        databases.updateDocument('68b213e7001400dc7f21', 'users', user.$id, { relationship_id: relationshipDoc.$id }),
-        databases.updateDocument('68b213e7001400dc7f21', 'users', userToAdd.$id, { relationship_id: relationshipDoc.$id })
-      ]);
-
       setSuccess(`Successfully connected with ${userToAdd.name}.`);
       setNewUserShareableId('');
       const newAssociatedUsers = [...associatedUsers, userToAdd];
