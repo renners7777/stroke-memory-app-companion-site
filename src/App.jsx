@@ -3,13 +3,13 @@ import Home from './components/Home';
 import Login from './components/Login';
 import CaregiverDashboard from './components/CaregiverDashboard';
 import PatientDashboard from './components/PatientDashboard';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { account, databases, Query } from './lib/appwrite';
 import PropTypes from 'prop-types';
 import './App.css';
 
 // Helper component to render the correct dashboard based on user role
-const DashboardRenderer = ({ userRole, user, logout, reminders, setReminders, journalEntries }) => {
+const DashboardRenderer = ({ userRole, user, logout, reminders, setReminders, journalEntries, setJournalEntries }) => {
   if (!userRole) {
     return <div className="min-h-screen flex items-center justify-center">Loading dashboard...</div>;
   }
@@ -19,9 +19,10 @@ const DashboardRenderer = ({ userRole, user, logout, reminders, setReminders, jo
       <CaregiverDashboard 
         user={user}
         logout={logout}
-        reminders={reminders}
+        reminders={reminders} 
         setReminders={setReminders} 
         journalEntries={journalEntries}
+        setJournalEntries={setJournalEntries}
       />
     );
   }
@@ -32,7 +33,9 @@ const DashboardRenderer = ({ userRole, user, logout, reminders, setReminders, jo
         user={user}
         logout={logout}
         reminders={reminders}
+        setReminders={setReminders} // <-- FIX: Pass setter to PatientDashboard
         journalEntries={journalEntries}
+        setJournalEntries={setJournalEntries} // <-- FIX: Pass setter to PatientDashboard
       />
     );
   }
@@ -47,43 +50,22 @@ DashboardRenderer.propTypes = {
   reminders: PropTypes.array,
   setReminders: PropTypes.func,
   journalEntries: PropTypes.array,
+  setJournalEntries: PropTypes.func,
 };
 
 
 const App = () => {
   const [loggedInUser, setLoggedInUser] = useState(null);
-  const [userRole, setUserRole] = useState(null); // 'caregiver' or 'patient'
+  const [userRole, setUserRole] = useState(null);
   const [reminders, setReminders] = useState([]);
   const [journalEntries, setJournalEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // This function is now only for patients, as caregivers fetch patient data separately.
-  const fetchPatientData = useCallback(async (userId) => {
-    try {
-      console.log('Fetching data for patient:', userId);
-      const userReminders = await databases.listDocuments(
-        '68b213e7001400dc7f21',
-        'reminders_table',
-        [Query.equal('userID', userId)]
-      );
-      setReminders(userReminders.documents);
-
-      const entries = await databases.listDocuments(
-        '68b213e7001400dc7f21',
-        'journal_table',
-        [Query.equal('userID', userId)]
-      );
-      setJournalEntries(entries.documents);
-    } catch (error) {
-      console.error('Data fetch failed:', error);
-    }
-  }, []);
 
   const logout = async () => {
     try {
       await account.deleteSession('current');
       setLoggedInUser(null);
-      setUserRole(null); // Reset role on logout
+      setUserRole(null); 
     } catch (error) {
       console.error('Logout failed:', error);
     }
@@ -93,7 +75,6 @@ const App = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        console.log('Checking initial session...');
         const user = await account.get();
         setLoggedInUser(user);
       } catch (error) {
@@ -105,9 +86,9 @@ const App = () => {
     checkSession();
   }, []);
 
-  // When a user logs in, fetch their role from the 'users' table and their data
+  // When a user logs in, determine their role and fetch initial data
   useEffect(() => {
-    const fetchRoleAndData = async () => {
+    const fetchUserAndData = async () => {
       if (!loggedInUser) {
         setUserRole(null);
         setReminders([]);
@@ -115,37 +96,37 @@ const App = () => {
         return;
       }
 
-      console.log('User logged in, fetching role from database...');
       try {
-        // Fetch the user's document from the 'users' collection
-        const userDoc = await databases.getDocument(
-          '68b213e7001400dc7f21', // Database ID
-          'users',              // Users collection ID
-          loggedInUser.$id      // User's document ID
-        );
-        
+        // 1. Fetch the user's own document to determine their role.
+        // This requires the document-level permission to be set correctly on creation.
+        const userDoc = await databases.getDocument('68b213e7001400dc7f21', 'users', loggedInUser.$id);
         const role = userDoc.role;
-        if (role) {
-          setUserRole(role);
-          console.log('User role set from database:', role);
-          // If the user is a patient, fetch their initial data.
-          // A caregiver's dashboard handles its own data fetching based on the selected patient.
-          if (role === 'patient') {
-            fetchPatientData(loggedInUser.$id);
-          }
-        } else {
-           throw new Error('Role not found in user document.');
+
+        if (!role) {
+          throw new Error("Role not found in user document.");
+        }
+        
+        setUserRole(role);
+
+        // 2. If the user is a patient, fetch their specific data.
+        // (Caregivers fetch data for their selected patient inside their own dashboard).
+        if (role === 'patient') {
+          const [remindersResponse, journalResponse] = await Promise.all([
+              databases.listDocuments('68b213e7001400dc7f21', 'reminders_table', [Query.equal('userID', loggedInUser.$id)]),
+              databases.listDocuments('68b213e7001400dc7f21', 'journal_table', [Query.equal('userID', loggedInUser.$id)])
+          ]);
+          setReminders(remindersResponse.documents);
+          setJournalEntries(journalResponse.documents);
         }
 
       } catch (error) {
-        console.error('Error fetching user role:', error);
-        // Fallback or error handling
-        setUserRole(null);
+        console.error('Failed to fetch user role or initial data:', error);
+        setUserRole(null); // Reset on error to prevent inconsistent states
       }
     };
     
-    fetchRoleAndData();
-  }, [loggedInUser, fetchPatientData]);
+    fetchUserAndData();
+  }, [loggedInUser]); // Dependency is solely on the loggedInUser object
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -170,6 +151,7 @@ const App = () => {
                 reminders={reminders}
                 setReminders={setReminders}
                 journalEntries={journalEntries}
+                setJournalEntries={setJournalEntries}
               />
             ) : (
               <Navigate to="/" replace />
