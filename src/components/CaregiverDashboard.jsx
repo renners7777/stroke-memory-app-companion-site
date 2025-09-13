@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { databases, ID, Permission, Role, Query } from '../lib/appwrite';
+import { databases, ID, Query } from '../lib/appwrite';
 import Chat from './Chat';
 
 const CaregiverDashboard = ({ user, logout }) => {
@@ -102,6 +102,7 @@ const CaregiverDashboard = ({ user, logout }) => {
         return;
       }
 
+      // FINAL TEST: Relying ONLY on collection-level permissions.
       await databases.createDocument(
         '68b213e7001400dc7f21',
         'user_relationships',
@@ -109,13 +110,7 @@ const CaregiverDashboard = ({ user, logout }) => {
         {
           companion_id: user.$id,
           patient_id: userToAdd.$id
-        },
-        [
-          Permission.read(Role.user(user.$id)),
-          Permission.write(Role.user(user.$id)),
-          Permission.read(Role.user(userToAdd.$id)),
-          Permission.write(Role.user(userToAdd.$id)) // <<< THE FIX
-        ]
+        }
       );
       
       setSuccess(`Successfully connected with ${userToAdd.name}.`);
@@ -145,13 +140,7 @@ const CaregiverDashboard = ({ user, logout }) => {
           userID: selectedUser.$id,
           title: newReminderTitle,
           time: newReminderDate,
-        },
-        [
-          Permission.read(Role.user(selectedUser.$id)),
-          Permission.read(Role.user(user.$id)),
-          Permission.write(Role.user(selectedUser.$id)),
-          Permission.write(Role.user(user.$id)),
-        ]
+        }
       );
       setReminders(prev => [...prev, newReminder]);
       setNewReminderTitle('');
