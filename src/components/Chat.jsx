@@ -12,7 +12,6 @@ const Chat = ({ user, selectedUser }) => {
     const findRelationship = async () => {
       if (!user || !selectedUser) return;
       try {
-        // Query for relationship where the companion is the current user AND the patient is the selected user
         const response = await databases.listDocuments(
           '68b213e7001400dc7f21',
           'user_relationships',
@@ -25,7 +24,6 @@ const Chat = ({ user, selectedUser }) => {
         if (response.documents.length > 0) {
           setRelationshipId(response.documents[0].$id);
         } else {
-          // Also check the other way around in case the relationship was created differently
           const responseAlt = await databases.listDocuments(
             '68b213e7001400dc7f21',
             'user_relationships',
@@ -53,7 +51,7 @@ const Chat = ({ user, selectedUser }) => {
         try {
             const response = await databases.listDocuments(
                 '68b213e7001400dc7f21',
-                'chat_messages',
+                'messages_table', // CORRECTED
                 [Query.equal('relationship_id', relationshipId)]
             );
             setMessages(response.documents);
@@ -62,10 +60,6 @@ const Chat = ({ user, selectedUser }) => {
         }
     };
     fetchMessages();
-
-    // Appwrite real-time subscription
-    // This part is for a more advanced implementation and requires Appwrite Functions
-    // For now, we will just fetch existing messages.
 
   }, [relationshipId]);
 
@@ -76,7 +70,7 @@ const Chat = ({ user, selectedUser }) => {
     try {
       const messageDoc = await databases.createDocument(
         '68b213e7001400dc7f21', // databaseId
-        'chat_messages',      // collectionId
+        'messages_table',      // CORRECTED
         ID.unique(),
         {
           relationship_id: relationshipId,
@@ -84,7 +78,6 @@ const Chat = ({ user, selectedUser }) => {
           content: newMessage,
         },
         [
-            // Allow both users in the relationship to read
             Permission.read(Role.user(user.$id)),
             Permission.read(Role.user(selectedUser.$id)),
         ]
@@ -93,7 +86,7 @@ const Chat = ({ user, selectedUser }) => {
       setNewMessage('');
     } catch (error) {
       console.error('Failed to send message:', error);
-      alert("Could not send message. You may not have the right permissions for the chat_messages collection.");
+      alert("Could not send message. Please ensure the 'messages_table' collection has the correct permissions.");
     }
   };
 
