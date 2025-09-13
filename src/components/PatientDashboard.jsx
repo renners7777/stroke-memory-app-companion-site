@@ -1,20 +1,24 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { databases, Query } from '../lib/appwrite';
+import Journal from './Journal';
+import Reminders from './Reminders';
 import Messaging from './Messaging';
 
-const PatientDashboard = ({ user, logout, reminders, journalEntries }) => {
+const PatientDashboard = ({ user, logout }) => {
   const [userShareableId, setUserShareableId] = useState('');
   const [companion, setCompanion] = useState(null);
+  const [reminders, setReminders] = useState([]);
+  const [journalEntries, setJournalEntries] = useState([]);
 
   useEffect(() => {
-    // Fetch the user's own shareable ID to display it
+    // Fetch the user's shareable ID
     const fetchUserShareableId = async () => {
       try {
         const userDoc = await databases.getDocument('68b213e7001400dc7f21', 'users', user.$id);
         setUserShareableId(userDoc.shareable_id);
       } catch (err) {
-        console.error('Error fetching shareable ID:', err);
+        console.error('Error fetching user shareable ID:', err);
       }
     };
 
@@ -41,76 +45,66 @@ const PatientDashboard = ({ user, logout, reminders, journalEntries }) => {
     fetchCompanion();
   }, [user.$id]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchReminders = async () => {
+        try {
+            const response = await databases.listDocuments('68b213e7001400dc7f21', 'reminders_table', [Query.equal('userID', user.$id)]);
+            setReminders(response.documents);
+        } catch (error) {
+            console.error("Failed to fetch reminders:", error);
+        }
+    };
+
+    const fetchJournals = async () => {
+        try {
+            const response = await databases.listDocuments('68b213e7001400dc7f21', 'journal_table', [Query.equal('userID', user.$id)]);
+            setJournalEntries(response.documents);
+        } catch (error) {
+            console.error("Failed to fetch journal entries:", error);
+        }
+    };
+
+    fetchReminders();
+    fetchJournals();
+
+}, [user]);
+
   return (
-    <div className="min-h-screen bg-gray-100 font-sans">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Welcome, {user.name}</h1>
-          <button
-            onClick={logout}
-            className="bg-red-500 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-red-600"
-          >
-            Logout
-          </button>
+          <h1 className="text-2xl font-bold text-gray-800">Patient Dashboard</h1>
+          <div className="flex items-center">
+            <span className="mr-4 text-gray-600">Welcome, {user.name}</span>
+            <button onClick={logout} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">Logout</button>
+          </div>
         </div>
       </header>
-
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          
-          {/* Left Column: Shareable ID & Reminders */}
-          <div className="md:col-span-1 space-y-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-lg font-bold text-gray-800 mb-2">My Shareable ID</h3>
-              <p className="text-sm text-gray-600 mb-3">Share this ID with a companion to connect.</p>
-              <div className="bg-gray-100 p-2 rounded-md flex items-center justify-between">
-                <span className="font-mono text-gray-800">{userShareableId}</span>
-                <button
-                  onClick={() => navigator.clipboard.writeText(userShareableId)}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-500"
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
 
+          {/* Left column for Shareable ID */}
+          <div className="md:col-span-1 space-y-6">
             <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">My Reminders</h2>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {reminders.length > 0 ? reminders.map(reminder => (
-                  <div key={reminder.$id} className="border-l-4 border-green-500 pl-3">
-                    <p className="font-semibold text-gray-800 text-sm">{reminder.title}</p>
-                    <p className="text-xs text-gray-600">{new Date(reminder.dateTime).toLocaleString()}</p>
-                  </div>
-                )) : (
-                  <p className="text-gray-500 text-center py-4">You have no upcoming reminders.</p>
-                )}
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Your Shareable ID</h2>
+              <p className="text-sm text-gray-600 mb-4">Your companion can use this ID to connect to your dashboard.</p>
+              <div className="bg-gray-100 p-3 rounded-md text-center">
+                <p className="text-xl font-mono text-gray-800 tracking-wider">{userShareableId}</p>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Journal & Chat */}
+          {/* Center and Right columns for data */}
           <div className="md:col-span-2 space-y-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">My Journal</h2>
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {journalEntries.length > 0 ? journalEntries.map(entry => (
-                    <div key={entry.$id} className="border p-4 rounded-lg">
-                      <h3 className="font-semibold text-gray-800">{entry.title}</h3>
-                      <p className="text-sm text-gray-600">{entry.content}</p>
-                    </div>
-                  )) : (
-                    <p className="text-gray-500">No journal entries yet.</p>
-                  )}
-                </div>
-            </div>
-
+            <Reminders reminders={reminders} />
+            <Journal journalEntries={journalEntries} setJournalEntries={setJournalEntries} user={user} />
             <div className="bg-white p-6 rounded-lg shadow-md">
               {companion ? (
                 <>
                   <h2 className="text-lg font-bold text-gray-900 mb-4">Chat with {companion.name}</h2>
-                  <Messaging loggedInUser={user} selectedUser={companion} />
+                  <Messaging user={user} companion={companion} />
                 </>
               ) : (
                 <div className="text-center text-gray-500 py-8">
@@ -130,8 +124,6 @@ const PatientDashboard = ({ user, logout, reminders, journalEntries }) => {
 PatientDashboard.propTypes = {
   user: PropTypes.object.isRequired,
   logout: PropTypes.func.isRequired,
-  reminders: PropTypes.array.isRequired,
-  journalEntries: PropTypes.array.isRequired,
 };
 
 export default PatientDashboard;
