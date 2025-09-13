@@ -48,7 +48,7 @@ const Login = ({ setLoggedInUser }) => {
       // 2. Log the new user in to establish a session.
       await account.createEmailPasswordSession(email, password);
 
-      // 3. Create the user's document in the database with secure permissions.
+      // 3. Create the user's document in the database.
       const shareableId = Math.random().toString(36).substring(2, 8).toUpperCase();
       await databases.createDocument(
         '68b213e7001400dc7f21', // Database ID
@@ -61,9 +61,11 @@ const Login = ({ setLoggedInUser }) => {
           role: role,
         },
         [
-          // This is the most secure and correct setting:
-          // Only the user who owns this document can read or update it.
-          Permission.read(Role.user(userId)),
+          // *** THE DEFINITIVE FIX ***
+          // Allow ANY authenticated user to READ this document.
+          // This solves both the role check on login and the caregiver search.
+          Permission.read(Role.users()),
+          // BUT, only the user who owns it can UPDATE it.
           Permission.update(Role.user(userId)),
         ]
       );
