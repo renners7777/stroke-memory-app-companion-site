@@ -23,7 +23,7 @@ const Messaging = ({ user, companion }) => {
       try {
         const response = await databases.listDocuments(
           '68b213e7001400dc7f21', // Database ID
-          'chat_messages',       // Correct Collection ID
+          'messages_table',       // Correct Collection ID
           [
             Query.orderAsc('$createdAt'),
             Query.limit(100),
@@ -39,7 +39,7 @@ const Messaging = ({ user, companion }) => {
 
     getMessages();
 
-    const unsubscribe = client.subscribe(`databases.68b213e7001400dc7f21.collections.chat_messages.documents`, response => {
+    const unsubscribe = client.subscribe(`databases.68b213e7001400dc7f21.collections.messages_table.documents`, response => {
         if(response.events.includes("databases.*.collections.*.documents.*.create")){
             // Check if the message involves the current participants
             const participants = response.payload.participants;
@@ -62,7 +62,7 @@ const Messaging = ({ user, companion }) => {
     try {
       await databases.createDocument(
         '68b213e7001400dc7f21', // Database ID
-        'chat_messages',       // Correct Collection ID
+        'messages_table',       // Correct Collection ID
         ID.unique(),
         {
           sender_id: user.$id,
@@ -78,7 +78,7 @@ const Messaging = ({ user, companion }) => {
       setNewMessage('');
     } catch (err) {
       console.error('Failed to send message:', err);
-      setError("Could not send message. Please ensure the 'chat_messages' collection has the correct create permissions.");
+      setError("Could not send message. Please ensure the 'messages_table' collection has the correct create permissions.");
     }
   };
 
