@@ -16,14 +16,14 @@ const PatientDashboard = ({ user }) => {
       if (user.prefs.caregiver_id) {
           try {
               const response = await databases.getDocument(
-                  '68b213e7001400dc7f21',
-                  'caregivers',
+                  '68b213e7001400dc7f21', // Database ID
+                  'users',                // Correct Collection ID
                   user.prefs.caregiver_id
               );
               setCompanion(response);
           } catch(err) {
               console.error("Failed to fetch companion:", err);
-              setError("Could not load your companion's details.");
+              setError("Could not load your companion's details. Please ensure the user ID is correct.");
           }
       }
     };

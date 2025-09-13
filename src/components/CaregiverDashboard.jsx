@@ -17,15 +17,20 @@ const CaregiverDashboard = ({ user }) => {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
+        // Query the 'users' collection for documents where role is 'patient'
+        // and the caregiver_id in their prefs matches the current user's ID.
         const response = await databases.listDocuments(
-          '68b213e7001400dc7f21',
-          'patients',
-          [Query.equal('caregiver_id', user.$id)]
+          '68b213e7001400dc7f21', // Database ID
+          'users',                // Correct Collection ID
+          [
+            Query.equal('role', 'patient'),
+            Query.equal('prefs.caregiver_id', user.$id)
+          ]
         );
         setPatients(response.documents);
       } catch (err) {
         console.error('Failed to fetch patients:', err);
-        setError('Could not fetch your patient list.');
+        setError('Could not fetch your patient list. Please ensure the "users" collection is correctly configured.');
       }
     };
     fetchPatients();
