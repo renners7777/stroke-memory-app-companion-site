@@ -8,6 +8,8 @@ const Messaging = ({ user, companion }) => {
   const messagesEndRef = useRef(null);
   const [error, setError] = useState(null);
 
+  const getParticipantString = (id1, id2) => [id1, id2].sort().join('_');
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -19,6 +21,8 @@ const Messaging = ({ user, companion }) => {
   useEffect(() => {
     if (!companion) return;
 
+    const participantString = getParticipantString(user.$id, companion.$id);
+
     const getMessages = async () => {
       try {
         const response = await databases.listDocuments(
@@ -27,7 +31,7 @@ const Messaging = ({ user, companion }) => {
           [
             Query.orderAsc('$createdAt'),
             Query.limit(100),
-            Query.equal('participants', [user.$id, companion.$id].sort())
+            Query.equal('participants', participantString)
           ]
         );
         setMessages(response.documents);
@@ -41,9 +45,7 @@ const Messaging = ({ user, companion }) => {
 
     const unsubscribe = client.subscribe(`databases.68b213e7001400dc7f21.collections.messages_table.documents`, response => {
         if(response.events.includes("databases.*.collections.*.documents.*.create")){
-            // Check if the message involves the current participants
-            const participants = response.payload.participants;
-            if (participants && participants.includes(user.$id) && participants.includes(companion.$id)) {
+            if (response.payload.participants === participantString) {
                 setMessages(prevMessages => [...prevMessages, response.payload]);
             }
         }
@@ -68,7 +70,7 @@ const Messaging = ({ user, companion }) => {
           senderID: user.$id,
           receiverID: companion.$id,
           message: newMessage,
-          participants: [user.$id, companion.$id].sort()
+          participants: getParticipantString(user.$id, companion.$id)
         }
       );
       setNewMessage('');
