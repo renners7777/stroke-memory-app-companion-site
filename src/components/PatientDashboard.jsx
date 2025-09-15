@@ -6,8 +6,8 @@ import Messaging from './Messaging';
 const PatientDashboard = ({ user }) => {
   const [reminders, setReminders] = useState([]);
   const [journalEntries, setJournalEntries] = useState([]);
-  const [newJournalTitle, setNewJournalTitle] = useState(''); // New state for the title
-  const [newJournalEntry, setNewJournalEntry] = useState('');
+  const [newJournalTitle, setNewJournalTitle] = useState('');
+  const [newJournalContent, setNewJournalContent] = useState('');
   const [error, setError] = useState(null);
   const [companion, setCompanion] = useState(null);
 
@@ -60,10 +60,9 @@ const PatientDashboard = ({ user }) => {
     fetchPatientData();
   }, [user]);
 
-  // Corrected to include a title for journal entries
   const handleAddJournalEntry = async (e) => {
     e.preventDefault();
-    if (!newJournalTitle.trim() || !newJournalEntry.trim()) {
+    if (!newJournalTitle.trim() || !newJournalContent.trim()) {
         setError("Journal title and entry cannot be empty.");
         return;
     }
@@ -77,12 +76,12 @@ const PatientDashboard = ({ user }) => {
         ID.unique(),
         {
           userID: user.$id,
-          title: newJournalTitle, // Added title
-          entry_text: newJournalEntry,
+          title: newJournalTitle,
+          content: newJournalContent,
         }
       );
       setNewJournalTitle('');
-      setNewJournalEntry('');
+      setNewJournalContent('');
       const journalResponse = await databases.listDocuments(
         '68b213e7001400dc7f21', 
         'journal_table', 
@@ -144,7 +143,7 @@ const PatientDashboard = ({ user }) => {
                         <li key={reminder.$id} className="flex items-center justify-between p-4 rounded-md bg-yellow-100">
                             <div>
                                 <p className="font-medium">{reminder.title}</p>
-                                <p className="text-sm text-gray-600">Due: {new Date(reminder.reminder_date).toLocaleString()}</p>
+                                <p className="text-sm text-gray-600">Due: {new Date(reminder.dateTime).toLocaleString()}</p>
                             </div>
                             <button 
                                 onClick={() => handleToggleReminder(reminder.$id, reminder.completed)}
@@ -176,11 +175,11 @@ const PatientDashboard = ({ user }) => {
                         </input>
                     </div>
                     <div>
-                        <label htmlFor="journalEntry" className="block text-sm font-medium text-gray-700">Your Thoughts</label>
+                        <label htmlFor="journalContent" className="block text-sm font-medium text-gray-700">Your Thoughts</label>
                         <textarea 
-                            id="journalEntry"
-                            value={newJournalEntry}
-                            onChange={(e) => setNewJournalEntry(e.target.value)}
+                            id="journalContent"
+                            value={newJournalContent}
+                            onChange={(e) => setNewJournalContent(e.target.value)}
                             rows="4"
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                             placeholder="What's on your mind today?">
@@ -194,7 +193,7 @@ const PatientDashboard = ({ user }) => {
                         <li key={entry.$id} className="p-4 bg-gray-50 rounded-md">
                             <p className="text-sm text-gray-500 mb-2">Logged on: {new Date(entry.$createdAt).toLocaleString()}</p>
                             <h3 className="font-semibold mb-1">{entry.title}</h3>
-                            <p>{entry.entry_text}</p>
+                            <p>{entry.content}</p>
                         </li>
                         ))
                     ) : (

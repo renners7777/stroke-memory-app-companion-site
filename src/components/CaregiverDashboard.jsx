@@ -10,7 +10,7 @@ const CaregiverDashboard = ({ user }) => {
   const [journalEntries, setJournalEntries] = useState([]);
   const [showAddReminder, setShowAddReminder] = useState(false);
   const [newReminderTitle, setNewReminderTitle] = useState(''); 
-  const [newReminderDate, setNewReminderDate] = useState('');
+  const [newReminderDateTime, setNewReminderDateTime] = useState('');
   const [error, setError] = useState(null);
   const [shareableIdInput, setShareableIdInput] = useState('');
 
@@ -102,7 +102,7 @@ const CaregiverDashboard = ({ user }) => {
 
   const handleAddReminder = async (e) => {
     e.preventDefault();
-    if (!newReminderTitle || !newReminderDate || !selectedPatient) return;
+    if (!newReminderTitle || !newReminderDateTime || !selectedPatient) return;
 
     setError(null);
     try {
@@ -114,7 +114,7 @@ const CaregiverDashboard = ({ user }) => {
           userID: selectedPatient.$id,
           creatorID: user.$id,
           title: newReminderTitle,
-          reminder_date: newReminderDate,
+          dateTime: newReminderDateTime,
           completed: false,
         }
       );
@@ -123,7 +123,7 @@ const CaregiverDashboard = ({ user }) => {
       );
       setReminders(reminderResponse.documents);
       setNewReminderTitle('');
-      setNewReminderDate('');
+      setNewReminderDateTime('');
       setShowAddReminder(false);
     } catch (err) {
       console.error('Failed to add reminder:', err);
@@ -181,7 +181,7 @@ const CaregiverDashboard = ({ user }) => {
                         reminders.map(reminder => (
                           <li key={reminder.$id} className={`p-4 rounded-md ${reminder.completed ? 'bg-green-100' : 'bg-yellow-100'}`}>
                             <p className="font-medium">{reminder.title}</p>
-                            <p className="text-sm text-slate-600">Due: {new Date(reminder.reminder_date).toLocaleString()}</p>
+                            <p className="text-sm text-slate-600">Due: {new Date(reminder.dateTime).toLocaleString()}</p>
                             <p className={`text-sm font-semibold ${reminder.completed ? 'text-green-700' : 'text-yellow-700'}`}>
                               Status: {reminder.completed ? 'Completed' : 'Pending'}
                             </p>
@@ -203,7 +203,7 @@ const CaregiverDashboard = ({ user }) => {
                           </div>
                           <div>
                             <label htmlFor="reminderDate" className="block text-sm font-medium text-slate-700">Date and Time</label>
-                            <input type="datetime-local" id="reminderDate" value={newReminderDate} onChange={e => setNewReminderDate(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                            <input type="datetime-local" id="reminderDate" value={newReminderDateTime} onChange={e => setNewReminderDateTime(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
                           </div>
                           <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Add Reminder</button>
                         </form>
@@ -212,7 +212,6 @@ const CaregiverDashboard = ({ user }) => {
                   </div>
                 </div>
 
-                {/* Updated to show journal entry titles */}
                 <div>
                     <h2 className="text-xl font-semibold text-slate-900 mb-4">Journal Entries from {selectedPatient.name}</h2>
                      <div className="bg-white p-6 shadow-lg rounded-lg">
@@ -222,7 +221,7 @@ const CaregiverDashboard = ({ user }) => {
                             <li key={entry.$id} className="p-4 bg-slate-50 rounded-md">
                                 <p className="text-sm text-slate-500 mb-2">Logged on: {new Date(entry.$createdAt).toLocaleString()}</p>
                                 <h3 className="font-semibold mb-1">{entry.title}</h3>
-                                <p>{entry.entry_text}</p>
+                                <p>{entry.content}</p>
                             </li>
                             ))
                         ) : (

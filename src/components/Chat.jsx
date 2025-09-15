@@ -8,6 +8,9 @@ const Chat = ({ user, selectedUser }) => {
   const messagesEndRef = useRef(null);
   const [error, setError] = useState(null);
 
+  // Helper to create a consistent, queryable string from participant IDs
+  const getParticipantString = (id1, id2) => [id1, id2].sort().join('_');
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -19,6 +22,8 @@ const Chat = ({ user, selectedUser }) => {
   useEffect(() => {
     if (!selectedUser) return;
 
+    const participantString = getParticipantString(user.$id, selectedUser.$id);
+
     const getMessages = async () => {
       try {
         const response = await databases.listDocuments(
@@ -27,7 +32,7 @@ const Chat = ({ user, selectedUser }) => {
           [
             Query.orderAsc('$createdAt'),
             Query.limit(100),
-            Query.equal('participants', [user.$id, selectedUser.$id].sort())
+            Query.equal('participants', participantString) // Query with the string
           ]
         );
         setMessages(response.documents);
@@ -41,8 +46,8 @@ const Chat = ({ user, selectedUser }) => {
 
     const unsubscribe = client.subscribe(`databases.68b213e7001400dc7f21.collections.messages_table.documents`, response => {
       if(response.events.includes("databases.*.collections.*.documents.*.create")){
-        const participants = response.payload.participants;
-        if (participants && participants.includes(user.$id) && participants.includes(selectedUser.$id)) {
+        // Check if the new message belongs to the current chat
+        if (response.payload.participants === participantString) {
             setMessages(prevMessages => [...prevMessages, response.payload]);
         }
       }
@@ -53,7 +58,6 @@ const Chat = ({ user, selectedUser }) => {
     };
   }, [user.$id, selectedUser]);
 
-  // Corrected attribute names to match Appwrite collection
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser) return;
@@ -65,10 +69,10 @@ const Chat = ({ user, selectedUser }) => {
         'messages_table',        
         ID.unique(),
         {
-          senderID: user.$id, // Corrected from sender_id
-          receiverID: selectedUser.$id, // Corrected from receiver_id
+          senderID: user.$id,
+          receiverID: selectedUser.$id,
           message: newMessage,
-          participants: [user.$id, selectedUser.$id].sort()
+          participants: getParticipantString(user.$id, selectedUser.$id) // Send as a string
         }
       );
       setNewMessage('');
