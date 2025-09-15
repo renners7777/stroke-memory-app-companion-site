@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { databases, ID, Query, client, Permission, Role } from '../lib/appwrite';
+import { databases, ID, Query, client } from '../lib/appwrite';
 import PropTypes from 'prop-types';
 
 const Messaging = ({ user, companion }) => {
@@ -65,15 +65,11 @@ const Messaging = ({ user, companion }) => {
         'messages_table',       // Correct Collection ID
         ID.unique(),
         {
-          sender_id: user.$id,
-          receiver_id: companion.$id,
+          senderID: user.$id,
+          receiverID: companion.$id,
           message: newMessage,
-          participants: [user.$id, companion.$id].sort() // Sort to ensure consistency
-        },
-        [
-            Permission.read(Role.user(user.$id)),
-            Permission.read(Role.user(companion.$id)),
-        ]
+          participants: [user.$id, companion.$id].sort()
+        }
       );
       setNewMessage('');
     } catch (err) {
@@ -95,8 +91,8 @@ const Messaging = ({ user, companion }) => {
       <h2 className="text-xl font-semibold text-slate-900 mb-4">Chat with {companion.name}</h2>
       <div className="h-80 overflow-y-auto mb-4 p-4 bg-slate-50 rounded-md border">
         {messages.map(message => (
-          <div key={message.$id} className={`flex ${message.sender_id === user.$id ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-xs lg:max-w-md p-3 rounded-lg mb-2 ${message.sender_id === user.$id ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`}>
+          <div key={message.$id} className={`flex ${message.senderID === user.$id ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-xs lg:max-w-md p-3 rounded-lg mb-2 ${message.senderID === user.$id ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`}>
               <p>{message.message}</p>
             </div>
           </div>
