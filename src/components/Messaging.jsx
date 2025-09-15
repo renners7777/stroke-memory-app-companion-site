@@ -44,17 +44,17 @@ const Messaging = ({ user, companion }) => {
     getMessages();
 
     const unsubscribe = client.subscribe(`databases.68b213e7001400dc7f21.collections.messages_table.documents`, response => {
-        if(response.events.includes("databases.*.collections.*.documents.*.create")){
-            if (response.payload.participants === participantString) {
-                setMessages(prevMessages => [...prevMessages, response.payload]);
-            }
+      if (response.events.includes("databases.*.collections.*.documents.*.create")) {
+        if (response.payload.participants === participantString) {
+          setMessages(prevMessages => [...prevMessages, response.payload]);
         }
+      }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [user.$id, companion]);
+  }, [companion, user.$id]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();

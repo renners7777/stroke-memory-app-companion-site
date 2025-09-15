@@ -8,7 +8,6 @@ const Chat = ({ user, selectedUser }) => {
   const messagesEndRef = useRef(null);
   const [error, setError] = useState(null);
 
-  // Helper to create a consistent, queryable string from participant IDs
   const getParticipantString = (id1, id2) => [id1, id2].sort().join('_');
 
   const scrollToBottom = () => {
@@ -32,7 +31,7 @@ const Chat = ({ user, selectedUser }) => {
           [
             Query.orderAsc('$createdAt'),
             Query.limit(100),
-            Query.equal('participants', participantString) // Query with the string
+            Query.equal('participants', participantString)
           ]
         );
         setMessages(response.documents);
@@ -45,10 +44,9 @@ const Chat = ({ user, selectedUser }) => {
     getMessages();
 
     const unsubscribe = client.subscribe(`databases.68b213e7001400dc7f21.collections.messages_table.documents`, response => {
-      if(response.events.includes("databases.*.collections.*.documents.*.create")){
-        // Check if the new message belongs to the current chat
+      if (response.events.includes("databases.*.collections.*.documents.*.create")) {
         if (response.payload.participants === participantString) {
-            setMessages(prevMessages => [...prevMessages, response.payload]);
+          setMessages(prevMessages => [...prevMessages, response.payload]);
         }
       }
     });
@@ -56,7 +54,7 @@ const Chat = ({ user, selectedUser }) => {
     return () => {
       unsubscribe();
     };
-  }, [user.$id, selectedUser]);
+  }, [selectedUser, user.$id]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -65,14 +63,14 @@ const Chat = ({ user, selectedUser }) => {
 
     try {
       await databases.createDocument(
-        '68b213e7001400dc7f21',  
-        'messages_table',        
+        '68b213e7001400dc7f21',
+        'messages_table',
         ID.unique(),
         {
           senderID: user.$id,
           receiverID: selectedUser.$id,
           message: newMessage,
-          participants: getParticipantString(user.$id, selectedUser.$id) // Send as a string
+          participants: getParticipantString(user.$id, selectedUser.$id)
         }
       );
       setNewMessage('');
@@ -83,7 +81,7 @@ const Chat = ({ user, selectedUser }) => {
   };
 
   if (!selectedUser) {
-    return null; 
+    return null;
   }
 
   return (
@@ -117,8 +115,8 @@ const Chat = ({ user, selectedUser }) => {
 };
 
 Chat.propTypes = {
-    user: PropTypes.object.isRequired,
-    selectedUser: PropTypes.object,
+  user: PropTypes.object.isRequired,
+  selectedUser: PropTypes.object,
 };
 
 export default Chat;

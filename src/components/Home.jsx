@@ -15,24 +15,6 @@ const Feature = ({ icon, title, description }) => (
 const Home = () => {
   return (
     <div className="bg-slate-50 text-slate-800 p-5">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zM12 14l6.16-3.422A12.083 12.083 0 0112 21a12.083 12.083 0 01-6.16-10.422L12 14z" /></svg>
-              <span className="text-xl font-bold">Stroke Recovery Hub</span>
-            </div>
-            <Link
-              to="/login"
-              className="bg-indigo-600 text-white rounded-md px-5 py-2 text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-            >
-              Caregiver Login
-            </Link>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <main>
         <div className="py-20 sm:py-28 text-center bg-white">
