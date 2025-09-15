@@ -9,27 +9,35 @@ const CaregiverDashboard = ({ user }) => {
   const [reminders, setReminders] = useState([]);
   const [journalEntries, setJournalEntries] = useState([]);
   const [showAddReminder, setShowAddReminder] = useState(false);
-  const [newReminderTitle, setNewReminderTitle] = useState(''); 
+  const [newReminderTitle, setNewReminderTitle] = useState('');
   const [newReminderDateTime, setNewReminderDateTime] = useState('');
   const [error, setError] = useState(null);
   const [shareableIdInput, setShareableIdInput] = useState('');
 
-  const fetchPatients = async () => {
-    try {
-      const response = await databases.listDocuments(
-        '68b213e7001400dc7f21',
-        'users',
-        [Query.equal('caregiver_id', user.$id)]
-      );
-      setPatients(response.documents);
-    } catch (err) {
-      console.error('Failed to fetch patients:', err);
-      setError('Could not fetch your patient list.');
-    }
-  };
-
   useEffect(() => {
-    fetchPatients();
+    const loadPatientsAndSelectFromUrl = async () => {
+      try {
+        const response = await databases.listDocuments(
+          '68b213e7001400dc7f21',
+          'users',
+          [Query.equal('caregiver_id', user.$id)]
+        );
+        const fetchedPatients = response.documents;
+        setPatients(fetchedPatients);
+
+        const patientIdFromHash = window.location.hash.substring(1);
+        if (patientIdFromHash && fetchedPatients.length > 0) {
+          const patientToSelect = fetchedPatients.find(p => p.$id === patientIdFromHash);
+          if (patientToSelect) {
+            setSelectedPatient(patientToSelect);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch patients:', err);
+        setError('Could not fetch your patient list.');
+      }
+    };
+    loadPatientsAndSelectFromUrl();
   }, [user.$id]);
 
   useEffect(() => {
@@ -65,6 +73,11 @@ const CaregiverDashboard = ({ user }) => {
     fetchData();
   }, [selectedPatient]);
 
+  const handlePatientSelection = (patient) => {
+    setSelectedPatient(patient);
+    window.location.hash = patient ? patient.$id : '';
+  };
+
   const handleLinkPatient = async (e) => {
     e.preventDefault();
     setError(null);
@@ -93,7 +106,14 @@ const CaregiverDashboard = ({ user }) => {
       );
 
       setShareableIdInput('');
-      await fetchPatients();
+      // Re-fetch patients to get the updated list
+      const response = await databases.listDocuments(
+        '68b213e7001400dc7f21',
+        'users',
+        [Query.equal('caregiver_id', user.$id)]
+      );
+      setPatients(response.documents);
+
     } catch (err) {
       console.error('Failed to link patient:', err);
       setError(`Failed to link patient: ${err.message}. Check collection permissions.`);
@@ -145,7 +165,7 @@ const CaregiverDashboard = ({ user }) => {
                 {patients.length > 0 ? (
                   patients.map(patient => (
                     <li key={patient.$id}>
-                      <button onClick={() => setSelectedPatient(patient)} className={`w-full text-left px-4 py-3 rounded-md transition-colors ${selectedPatient?.$id === patient.$id ? 'bg-indigo-500 text-white' : 'bg-slate-100 hover:bg-slate-200'}`}>
+                      <button onClick={() => handlePatientSelection(patient)} className={`w-full text-left px-4 py-3 rounded-md transition-colors ${selectedPatient?.$id === patient.$id ? 'bg-indigo-500 text-white' : 'bg-slate-100 hover:bg-slate-200'}`}>
                         {patient.name}
                       </button>
                     </li>
