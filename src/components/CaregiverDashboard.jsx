@@ -25,9 +25,10 @@ const CaregiverDashboard = ({ user }) => {
         const fetchedPatients = response.documents;
         setPatients(fetchedPatients);
 
-        const patientIdFromHash = window.location.hash.substring(1);
-        if (patientIdFromHash && fetchedPatients.length > 0) {
-          const patientToSelect = fetchedPatients.find(p => p.$id === patientIdFromHash);
+        const params = new URLSearchParams(window.location.search);
+        const patientIdFromUrl = params.get('patient');
+        if (patientIdFromUrl && fetchedPatients.length > 0) {
+          const patientToSelect = fetchedPatients.find(p => p.$id === patientIdFromUrl);
           if (patientToSelect) {
             setSelectedPatient(patientToSelect);
           }
@@ -75,7 +76,13 @@ const CaregiverDashboard = ({ user }) => {
 
   const handlePatientSelection = (patient) => {
     setSelectedPatient(patient);
-    window.location.hash = patient ? patient.$id : '';
+    const url = new URL(window.location);
+    if (patient) {
+      url.searchParams.set('patient', patient.$id);
+    } else {
+      url.searchParams.delete('patient');
+    }
+    window.history.pushState({}, '', url);
   };
 
   const handleLinkPatient = async (e) => {
