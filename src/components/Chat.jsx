@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { databases, ID, Query, client, Permission, Role } from '../lib/appwrite';
+import { databases, ID, Query, client, Permission } from '../lib/appwrite';
 import PropTypes from 'prop-types';
 
 const Chat = ({ user, selectedUser }) => {
@@ -73,8 +73,8 @@ const Chat = ({ user, selectedUser }) => {
           participants: getParticipantString(user.$id, selectedUser.$id)
         },
         [
-          Permission.read(Role.user(user.$id)),
-          Permission.read(Role.user(selectedUser.$id))
+          Permission.read(`user:${user.$id}`),
+          Permission.read(`user:${selectedUser.$id}`)
         ]
       );
       setNewMessage('');

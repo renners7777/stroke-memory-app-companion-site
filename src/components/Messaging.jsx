@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { databases, ID, Query, client, Permission, Role } from '../lib/appwrite';
+import { databases, ID, Query, client, Permission } from '../lib/appwrite';
 import PropTypes from 'prop-types';
 
 const Messaging = ({ user, companion }) => {
@@ -73,8 +73,8 @@ const Messaging = ({ user, companion }) => {
           participants: getParticipantString(user.$id, companion.$id)
         },
         [
-          Permission.read(Role.user(user.$id)),
-          Permission.read(Role.user(companion.$id))
+          Permission.read(`user:${user.$id}`),
+          Permission.read(`user:${companion.$id}`)
         ]
       );
       setNewMessage('');
