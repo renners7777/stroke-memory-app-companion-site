@@ -219,7 +219,7 @@ const CaregiverDashboard = ({ user }) => {
                         {journalEntries.length > 0 ? (
                             journalEntries.map(entry => (
                             <li key={entry.$id} className="p-4 bg-slate-50 rounded-md">
-                                <p className="text-sm text-slate-500 mb-2">Logged on: {new Date(entry.$createdAt).toLocaleString()}</p>
+                                <p className="text-sm text-slate-500 mb-2">Logged on: {new Date(entry.dateCreated).toLocaleString()}</p>
                                 <h3 className="font-semibold mb-1">{entry.title}</h3>
                                 <p>{entry.content}</p>
                             </li>
