@@ -53,7 +53,7 @@ const CaregiverDashboard = ({ user }) => {
         const journalResponse = await databases.listDocuments(
           '68b213e7001400dc7f21',
           'journal_table',
-          commonQuery
+          [Query.equal('userID', selectedPatient.$id), Query.equal('isSharedWithCaregiver', true)]
         );
         setJournalEntries(journalResponse.documents);
       } catch (err) {
@@ -115,7 +115,7 @@ const CaregiverDashboard = ({ user }) => {
           creatorID: user.$id,
           title: newReminderTitle,
           dateTime: newReminderDateTime,
-          completed: false,
+          status: 'pending',
         }
       );
       const reminderResponse = await databases.listDocuments(
@@ -179,11 +179,11 @@ const CaregiverDashboard = ({ user }) => {
                     <ul className="space-y-4 mb-6">
                       {reminders.length > 0 ? (
                         reminders.map(reminder => (
-                          <li key={reminder.$id} className={`p-4 rounded-md ${reminder.completed ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                          <li key={reminder.$id} className={`p-4 rounded-md ${reminder.status === 'completed' ? 'bg-green-100' : 'bg-yellow-100'}`}>
                             <p className="font-medium">{reminder.title}</p>
                             <p className="text-sm text-slate-600">Due: {new Date(reminder.dateTime).toLocaleString()}</p>
-                            <p className={`text-sm font-semibold ${reminder.completed ? 'text-green-700' : 'text-yellow-700'}`}>
-                              Status: {reminder.completed ? 'Completed' : 'Pending'}
+                            <p className={`text-sm font-semibold ${reminder.status === 'completed' ? 'text-green-700' : 'text-yellow-700'}`}>
+                              Status: {reminder.status === 'completed' ? 'Completed' : 'Pending'}
                             </p>
                           </li>
                         ))

@@ -8,6 +8,7 @@ const PatientDashboard = ({ user }) => {
   const [journalEntries, setJournalEntries] = useState([]);
   const [newJournalTitle, setNewJournalTitle] = useState('');
   const [newJournalContent, setNewJournalContent] = useState('');
+  const [newJournalIsShared, setNewJournalIsShared] = useState(false);
   const [error, setError] = useState(null);
   const [companion, setCompanion] = useState(null);
 
@@ -79,10 +80,12 @@ const PatientDashboard = ({ user }) => {
           title: newJournalTitle,
           content: newJournalContent,
           dateCreated: new Date().toISOString(),
+          isSharedWithCaregiver: newJournalIsShared,
         }
       );
       setNewJournalTitle('');
       setNewJournalContent('');
+      setNewJournalIsShared(false);
       const journalResponse = await databases.listDocuments(
         '68b213e7001400dc7f21', 
         'journal_table', 
@@ -97,12 +100,13 @@ const PatientDashboard = ({ user }) => {
 
   const handleToggleReminder = async (reminderId, currentStatus) => {
     setError(null);
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
     try {
       await databases.updateDocument(
         '68b213e7001400dc7f21', 
         'reminders_table', 
         reminderId, 
-        { completed: !currentStatus }
+        { status: newStatus }
       );
       const reminderResponse = await databases.listDocuments(
         '68b213e7001400dc7f21', 
@@ -141,15 +145,15 @@ const PatientDashboard = ({ user }) => {
                     <ul className="space-y-4">
                     {reminders.length > 0 ? (
                         reminders.map(reminder => (
-                        <li key={reminder.$id} className="flex items-center justify-between p-4 rounded-md bg-yellow-100">
+                        <li key={reminder.$id} className={`flex items-center justify-between p-4 rounded-md ${reminder.status === 'completed' ? 'bg-green-100' : 'bg-yellow-100'}`}>
                             <div>
                                 <p className="font-medium">{reminder.title}</p>
                                 <p className="text-sm text-gray-600">Due: {new Date(reminder.dateTime).toLocaleString()}</p>
                             </div>
                             <button 
-                                onClick={() => handleToggleReminder(reminder.$id, reminder.completed)}
-                                className={`px-4 py-2 rounded-md text-sm font-medium ${reminder.completed ? 'bg-green-500 text-white' : 'bg-gray-300'}`}>
-                                {reminder.completed ? 'Completed' : 'Mark as Complete'}
+                                onClick={() => handleToggleReminder(reminder.$id, reminder.status)}
+                                className={`px-4 py-2 rounded-md text-sm font-medium ${reminder.status === 'completed' ? 'bg-green-500 text-white' : 'bg-gray-300'}`}>
+                                {reminder.status === 'completed' ? 'Completed' : 'Mark as Complete'}
                             </button>
                         </li>
                         ))
@@ -186,6 +190,16 @@ const PatientDashboard = ({ user }) => {
                             placeholder="What's on your mind today?">
                         </textarea>
                     </div>
+                    <div className="flex items-center">
+                        <input
+                            id="shareWithCaregiver"
+                            type="checkbox"
+                            checked={newJournalIsShared}
+                            onChange={(e) => setNewJournalIsShared(e.target.checked)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="shareWithCaregiver" className="ml-2 block text-sm text-gray-900">Share with your companion</label>
+                    </div>
                     <button type="submit" className="mt-3 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Add Entry</button>
                 </form>
                 <ul className="space-y-4">
@@ -193,7 +207,7 @@ const PatientDashboard = ({ user }) => {
                         journalEntries.map(entry => (
                         <li key={entry.$id} className="p-4 bg-gray-50 rounded-md">
                             <p className="text-sm text-gray-500 mb-2">Logged on: {new Date(entry.dateCreated).toLocaleString()}</p>
-                            <h3 className="font-semibold mb-1">{entry.title}</h3>
+                            <h3 className="font-semibold mb-1">{entry.title} {entry.isSharedWithCaregiver && <span className="text-xs text-indigo-600 font-normal">(Shared)</span>}</h3>
                             <p>{entry.content}</p>
                         </li>
                         ))
