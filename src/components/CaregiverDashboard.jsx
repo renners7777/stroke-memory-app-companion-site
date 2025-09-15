@@ -112,7 +112,6 @@ const CaregiverDashboard = ({ user }) => {
         ID.unique(),
         {
           userID: selectedPatient.$id,
-          creatorID: user.$id,
           title: newReminderTitle,
           dateTime: newReminderDateTime,
           status: 'pending',

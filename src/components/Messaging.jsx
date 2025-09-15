@@ -78,7 +78,7 @@ const Messaging = ({ user, companion }) => {
       setNewMessage('');
     } catch (err) {
       console.error('Failed to send message:', err);
-      setError("Could not send message. Please ensure the 'messages_table' collection has the correct create permissions.");
+      setError(`Could not send message: ${err.message}`);
     }
   };
 
