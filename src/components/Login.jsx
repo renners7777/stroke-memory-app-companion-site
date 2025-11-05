@@ -31,8 +31,17 @@ const Login = ({ setLoggedInUser }) => {
           'users',
           user.$id
         );
-        setLoggedInUser(fullUserProfile);
-        navigate('/dashboard');
+
+        // Check user role for redirection
+        if (fullUserProfile.role === 'survivor' || fullUserProfile.role === 'companion') {
+            setLoggedInUser(fullUserProfile);
+            navigate('/dashboard');
+        } else {
+            // For old roles like 'caregiver' or others, redirect to update role page
+            setLoggedInUser(fullUserProfile);
+            navigate('/update-role');
+        }
+
       } catch (docError) {
         if (docError.code === 404) {
           setError('Your user profile is missing. Please register again.');
