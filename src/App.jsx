@@ -4,6 +4,7 @@ import Login from './components/Login';
 import CaregiverDashboard from './components/CaregiverDashboard';
 import SurvivorDashboard from './components/SurvivorDashboard';
 import Header from './components/Header';
+import UpdateRole from './components/UpdateRole'; // Import the new component
 import { useState, useEffect } from 'react';
 import { account, databases } from './lib/appwrite'; // Import databases
 import PropTypes from 'prop-types';
@@ -89,6 +90,17 @@ const App = () => {
                 <Navigate to="/login" replace />
               )
             } 
+          />
+
+          <Route 
+            path="/update-role"
+            element={
+              loggedInUser ? (
+                <UpdateRole loggedInUser={loggedInUser} setLoggedInUser={setLoggedInUser} />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
           />
 
           <Route path="*" element={<Navigate to="/" replace />} />
