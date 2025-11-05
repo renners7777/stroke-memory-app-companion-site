@@ -22,7 +22,7 @@ const Header = ({ loggedInUser, setLoggedInUser }) => {
         <div className="flex justify-between items-center h-20">
           <Link to="/" className="flex items-center gap-3 cursor-pointer">
             <img src="/Stroke Survivor App Logo HeartMind Connect.png" alt="HeartMind Connect Logo" className="h-12 w-auto" />
-            <h1 className="text-xl font-bold text-indigo-600">HeartMind Connect</h1>
+            <h1 className="text-xl font-extrabold text-indigo-600">HeartMind Connect</h1>
           </Link>
           <div>
             {loggedInUser ? (
