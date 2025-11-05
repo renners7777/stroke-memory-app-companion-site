@@ -2,7 +2,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Home from './components/Home';
 import Login from './components/Login';
 import CaregiverDashboard from './components/CaregiverDashboard';
-import PatientDashboard from './components/PatientDashboard';
+import SurvivorDashboard from './components/SurvivorDashboard';
 import Header from './components/Header';
 import { useState, useEffect } from 'react';
 import { account, databases } from './lib/appwrite'; // Import databases
@@ -16,12 +16,12 @@ const DashboardRenderer = ({ user }) => {
     return <div className="min-h-screen flex items-center justify-center">Loading dashboard...</div>;
   }
 
-  if (user.role === 'caregiver') {
+  if (user.role === 'companion') {
     return <CaregiverDashboard user={user} />;
   }
 
-  if (user.role === 'patient') {
-    return <PatientDashboard user={user} />;
+  if (user.role === 'survivor') {
+    return <SurvivorDashboard user={user} />;
   }
 
   return <div>Error: Could not determine user role.</div>;
