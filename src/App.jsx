@@ -16,11 +16,11 @@ const DashboardRenderer = ({ user }) => {
     return <div className="min-h-screen flex items-center justify-center">Loading dashboard...</div>;
   }
 
-  if (user.role === 'companion') {
+  if (user.role === 'companion' || user.role === 'caregiver') {
     return <CaregiverDashboard user={user} />;
   }
 
-  if (user.role === 'survivor') {
+  if (user.role === 'survivor' || user.role === 'patient') {
     return <SurvivorDashboard user={user} />;
   }
 
