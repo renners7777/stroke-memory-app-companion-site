@@ -3,7 +3,7 @@ import { databases, ID, Query } from '../lib/appwrite';
 import PropTypes from 'prop-types';
 import Messaging from './Messaging';
 
-const PatientDashboard = ({ user }) => {
+const SurvivorDashboard = ({ user }) => {
   const [reminders, setReminders] = useState([]);
   const [journalEntries, setJournalEntries] = useState([]);
   const [newJournalTitle, setNewJournalTitle] = useState('');
@@ -14,12 +14,12 @@ const PatientDashboard = ({ user }) => {
 
   useEffect(() => {
     const fetchCompanion = async () => {
-      if (user && user.caregiver_id) {
+      if (user && user.companion_id) {
           try {
               const response = await databases.getDocument(
                   '68b213e7001400dc7f21',
                   'users',
-                  user.caregiver_id
+                  user.companion_id
               );
               setCompanion(response);
           } catch(err) {
@@ -33,7 +33,7 @@ const PatientDashboard = ({ user }) => {
 
   useEffect(() => {
     if (!user) return;
-    const fetchPatientData = async () => {
+    const fetchSurvivorData = async () => {
       setError(null);
       try {
         const commonQuery = [Query.equal('userID', user.$id)];
@@ -53,12 +53,12 @@ const PatientDashboard = ({ user }) => {
         setJournalEntries(journalResponse.documents);
 
       } catch (err) {
-        console.error('Failed to fetch patient data:', err);
+        console.error('Failed to fetch survivor data:', err);
         setError('Failed to load your data. Please try refreshing the page.');
       }
     };
 
-    fetchPatientData();
+    fetchSurvivorData();
   }, [user]);
 
   const handleAddJournalEntry = async (e) => {
@@ -80,7 +80,7 @@ const PatientDashboard = ({ user }) => {
           title: newJournalTitle,
           content: newJournalContent,
           dateCreated: new Date().toISOString(),
-          isSharedWithCaregiver: newJournalIsShared,
+          isSharedWithCompanion: newJournalIsShared,
         }
       );
       setNewJournalTitle('');
@@ -131,7 +131,7 @@ const PatientDashboard = ({ user }) => {
 
         {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">{error}</div>}
         
-        {!user.caregiver_id && (
+        {!user.companion_id && (
           <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-4" role="alert">
             You are not yet connected to a companion. Please use your Shareable ID ({user.shareable_id}) to connect.
           </div>
@@ -192,13 +192,13 @@ const PatientDashboard = ({ user }) => {
                     </div>
                     <div className="flex items-center">
                         <input
-                            id="shareWithCaregiver"
+                            id="shareWithCompanion"
                             type="checkbox"
                             checked={newJournalIsShared}
                             onChange={(e) => setNewJournalIsShared(e.target.checked)}
                             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                         />
-                        <label htmlFor="shareWithCaregiver" className="ml-2 block text-sm text-gray-900">Share with your companion</label>
+                        <label htmlFor="shareWithCompanion" className="ml-2 block text-sm text-gray-900">Share with your companion</label>
                     </div>
                     <button type="submit" className="mt-3 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Add Entry</button>
                 </form>
@@ -207,7 +207,7 @@ const PatientDashboard = ({ user }) => {
                         journalEntries.map(entry => (
                         <li key={entry.$id} className="p-4 bg-gray-50 rounded-md">
                             <p className="text-sm text-gray-500 mb-2">Logged on: {new Date(entry.dateCreated).toLocaleString()}</p>
-                            <h3 className="font-semibold mb-1">{entry.title} {entry.isSharedWithCaregiver && <span className="text-xs text-indigo-600 font-normal">(Shared)</span>}</h3>
+                            <h3 className="font-semibold mb-1">{entry.title} {entry.isSharedWithCompanion && <span className="text-xs text-indigo-600 font-normal">(Shared)</span>}</h3>
                             <p>{entry.content}</p>
                         </li>
                         ))
@@ -229,8 +229,8 @@ const PatientDashboard = ({ user }) => {
   );
 };
 
-PatientDashboard.propTypes = {
+SurvivorDashboard.propTypes = {
   user: PropTypes.object.isRequired,
 };
 
-export default PatientDashboard;
+export default SurvivorDashboard;

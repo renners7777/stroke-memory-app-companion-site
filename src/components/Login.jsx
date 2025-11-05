@@ -9,7 +9,7 @@ const Login = ({ setLoggedInUser }) => {
     email: '',
     password: '',
     name: '',
-    role: 'patient', // Default role
+    role: 'survivor', // Default role
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -124,8 +124,8 @@ const Login = ({ setLoggedInUser }) => {
                 <div>
                   <label htmlFor="role" className="block text-sm font-medium text-slate-700">Your Role</label>
                   <select id="role" name="role" value={formData.role} onChange={handleInputChange} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-slate-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                    <option value="patient">I am a Patient</option>
-                    <option value="caregiver">I am a Companion / Caregiver</option>
+                    <option value="survivor">I am a Survivor</option>
+                    <option value="companion">I am a Companion / Caregiver</option>
                   </select>
                 </div>
               </>
