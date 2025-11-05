@@ -28,9 +28,9 @@ const Home = () => {
             <div className="mt-10">
               <Link
                 to="/login"
-                className="inline-block bg-indigo-600 text-white rounded-md px-8 py-3 text-lg font-semibold hover:bg-indigo-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
+                className="bg-indigo-600 text-white rounded-md px-5 py-2 text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
               >
-                Access the Dashboard
+                Sign In
               </Link>
             </div>
           </div>
