@@ -96,7 +96,10 @@ const CaregiverDashboard = ({ user }) => {
       const survivorResponse = await databases.listDocuments(
         '68b213e7001400dc7f21',
         'users',
-        [Query.equal('shareable_id', shareableIdInput.trim())]
+        [
+          Query.equal('shareable_id', shareableIdInput.trim().toUpperCase()),
+          Query.equal('role', 'survivor')
+        ]
       );
 
       if (survivorResponse.documents.length === 0) {
